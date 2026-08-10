@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html { scroll-behavior: smooth; }
+body {
+  @apply bg-white text-zinc-950 antialiased dark:bg-zinc-950 dark:text-zinc-50;
+  font-family: "Pretendard Variable", Pretendard, "SUIT Variable", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
+  word-break: keep-all;
+}
+::selection { @apply bg-zinc-950 text-white dark:bg-white dark:text-zinc-950; }
+.section-label { @apply text-sm font-medium text-zinc-500; }
+.about-copy {
+  max-width: 46rem;
+  font-size: clamp(1.55rem, 2.4vw, 2.15rem);
+  font-weight: 450;
+  line-height: 1.62;
+  letter-spacing: -0.038em;
+}
