@@ -94,7 +94,7 @@ export default async function ProjectPage({
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 rounded-full border border-zinc-200 px-4 py-2.5 text-sm dark:border-zinc-800"
               >
-                <ExternalLink size={16} /> Demo
+                <ExternalLink size={16} /> Live Demo
               </a>
             )}
           </div>
@@ -120,6 +120,29 @@ export default async function ProjectPage({
                     >
                       {feature}
                     </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+            {detail.userFlow && (
+              <section>
+                <h2 className="text-sm font-medium text-zinc-500">사용자 흐름</h2>
+                <ol className="mt-4 space-y-3">
+                  {detail.userFlow.map((item, index) => (
+                    <li key={item} className="flex gap-4 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
+                      <span className="font-mono text-sm text-zinc-400">{String(index + 1).padStart(2, "0")}</span>
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ol>
+              </section>
+            )}
+            {detail.implementation && (
+              <section>
+                <h2 className="text-sm font-medium text-zinc-500">구현에서 중요하게 다룬 부분</h2>
+                <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+                  {detail.implementation.map((item) => (
+                    <li key={item} className="rounded-xl border border-zinc-200 bg-white p-4 leading-7 dark:border-zinc-800 dark:bg-zinc-950">{item}</li>
                   ))}
                 </ul>
               </section>

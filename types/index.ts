@@ -1,6 +1,7 @@
 export type ProjectDetail = {
   overview?: string; problem?: string; goal?: string; architecture?: string;
   erd?: string; api?: string; features?: string[]; process?: string;
+  userFlow?: string[]; implementation?: string[];
   troubleshooting?: { title: string; problem: string; solution: string; result?: string }[];
   performance?: string; retrospective?: string;
 };
