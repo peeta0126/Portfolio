@@ -33,7 +33,3 @@ URL에 사용할 `slug`는 영문 소문자와 하이픈으로 작성하고, 메
 프로젝트 이미지를 사용할 경우 파일을 `public/`에 두고 `thumbnail` 필드에 경로를
 지정할 수 있습니다.
 
-## 이력서 교체
-
-현재 `public/resume.pdf`는 안내용 placeholder 파일입니다. 배포 전에 실제 이력서
-PDF로 교체하고 `sections/hero.tsx`에 주석으로 남겨 둔 이력서 버튼을 활성화하세요.
