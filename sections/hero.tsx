@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowDown, Github } from "lucide-react";
+import { ArrowDown, FileText, Github } from "lucide-react";
 import { profile } from "@/data/profile";
 import { Button } from "@/components/ui/button";
 
@@ -35,7 +35,15 @@ export function Hero() {
               <Github className="mr-2" size={15} />
               GitHub
             </Button>
-            {/* public/resume.pdf를 실제 이력서 PDF로 교체한 뒤 이력서 버튼을 활성화하세요. */}
+            <Button
+              href={profile.resumeUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              variant="secondary"
+            >
+              <FileText className="mr-2" size={15} />
+              이력서
+            </Button>
           </div>
         </motion.div>
         <motion.div
