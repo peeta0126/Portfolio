@@ -16,7 +16,7 @@ export function Projects() {
           className={
             featured.length === 1
               ? "mt-12 max-w-3xl"
-              : "mt-12 grid gap-5 md:grid-cols-2"
+              : "mt-12 grid gap-5 md:grid-cols-2 xl:grid-cols-3"
           }
         >
           {featured.map((project) => (

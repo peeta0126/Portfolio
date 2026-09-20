@@ -16,7 +16,7 @@ export function Contact() {
   return (
     <footer id="contact" className="py-24">
       <Container>
-        <p className="section-label">05 — Contact</p>
+        <p className="section-label">06 — Contact</p>
         <h2 className="mt-5 text-4xl font-semibold tracking-tight sm:text-6xl">
           새로운 기회와 협업에
           <br />

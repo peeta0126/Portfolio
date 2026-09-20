@@ -57,14 +57,12 @@ export function Hero() {
             <i className="h-2.5 w-2.5 rounded-full bg-zinc-700" />
             <i className="h-2.5 w-2.5 rounded-full bg-zinc-700" />
           </div>
-          <pre className="overflow-hidden font-mono text-sm leading-7 text-zinc-300">
+          <pre className="whitespace-pre-wrap break-words font-mono text-xs leading-7 text-zinc-300 sm:text-sm">
             <span className="text-violet-300">const</span> developer = {"{"}
             {"\n"} name: <span className="text-emerald-300">&quot;{profile.name}&quot;</span>,
-            {"\n"} focus: [
-            <span className="text-emerald-300">&quot;React&quot;</span>, {" "}
-            <span className="text-emerald-300">&quot;TypeScript&quot;</span>],
-            {"\n"} learning: {" "}
-            <span className="text-emerald-300">&quot;Full-stack Web Development&quot;</span>
+            {"\n"} focus: <span className="text-emerald-300">{JSON.stringify(profile.focus)}</span>,
+            {"\n"} interest: {" "}
+            <span className="text-emerald-300">&quot;{profile.interest}&quot;</span>
             {"\n"}{"}"};
           </pre>
         </motion.div>

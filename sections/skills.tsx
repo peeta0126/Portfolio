@@ -7,10 +7,10 @@ export function Skills() {
     <section className="py-24">
       <Container>
         <p className="section-label">02 — Tech Stack</p>
-        <div className="mt-12 grid gap-px overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-200 md:grid-cols-2 dark:border-zinc-800 dark:bg-zinc-800">
+        <div className="mt-12 grid gap-px overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-200 md:grid-cols-2 lg:grid-cols-3 dark:border-zinc-800 dark:bg-zinc-800">
           {skillGroups.map((group, i) => (
             <Reveal key={group.name} delay={i * 0.04}>
-              <div className="min-h-44 bg-white p-6 dark:bg-zinc-950">
+              <div className="h-full min-h-44 bg-white p-6 dark:bg-zinc-950">
                 <h3 className="font-medium">{group.name}</h3>
                 <div className="mt-5 flex flex-wrap gap-2">
                   {group.skills.map((skill) => (
