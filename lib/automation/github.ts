@@ -1,6 +1,7 @@
 import "server-only";
 import { z } from "zod";
 import { isSource, redact, selectFiles, type TreeFile } from "./core";
+import type { SourcePacket } from "./editorial";
 
 export class ServiceError extends Error {
   constructor(public code: string, public retryAfter = 60) { super(code); }
@@ -41,7 +42,7 @@ export type Repository = z.infer<typeof repoSchema>;
 export async function repositoryPage(page: number) {
   return z.array(repoSchema).parse(await github(`/users/${owner()}/repos?type=owner&sort=full_name&per_page=100&page=${page}`));
 }
-export async function collect(repo: Repository, previousManifest: {path:string;sha:string}[] = []) {
+export async function collect(repo: Repository, previousManifest: {path:string;sha:string}[] = []):Promise<SourcePacket & {languages:unknown;images:string[];manifest:{path:string;sha:string}[];unchanged:boolean}> {
   const base = `/repos/${repo.full_name.split("/").map(encodeURIComponent).join("/")}`;
   if (repo.full_name.split("/")[0].toLowerCase() !== owner().toLowerCase()) throw new Error("REPO_OWNER_MISMATCH");
   const commit = z.object({ sha: z.string(), commit: z.object({ tree: z.object({ sha: z.string() }) }) }).parse(await github(`${base}/commits/${encodeURIComponent(repo.default_branch)}`));
@@ -66,13 +67,24 @@ export async function collect(repo: Repository, previousManifest: {path:string;s
     for (const f of batch) { if (remaining <= 0) break; const content = f.content.slice(0, remaining); remaining -= content.length; files.push({ ...f, content }); }
   }
   if (!files.some(f => !/\.(md|json|yaml|yml|toml)$/i.test(f.path))) throw new ServiceError("INSUFFICIENT_SOURCE", 86400);
-  const [commits, prs, languages] = await Promise.allSettled([
+  const [commits, prs, languages, issues] = await Promise.allSettled([
     github(`${base}/commits?per_page=10`), github(`${base}/pulls?state=closed&per_page=5`), github(`${base}/languages`),
+    github(`${base}/issues?state=all&per_page=8`),
   ]);
   const records = (value: PromiseSettledResult<unknown>, type: "commit" | "pr") => {
     if (value.status !== "fulfilled" || !Array.isArray(value.value)) return [];
     return value.value.slice(0,10).map(v => type === "commit" ? { id: String(v.sha), message: redact(String(v.commit?.message ?? "")).slice(0,2000) } : { id: `pr:${v.number}`, title: redact(String(v.title)), body: redact(String(v.body ?? "")).slice(0,2500) });
   };
-  const images = tree.tree.filter(f => /\.(png|webp|jpg|jpeg)$/i.test(f.path) && /screen|preview|cover|hero/i.test(f.path)).slice(0,10).map(f => `https://raw.githubusercontent.com/${repo.full_name}/${commit.sha}/${f.path.split("/").map(encodeURIComponent).join("/")}`);
-  return { sha: commit.sha, files, tree: tree.tree.map(f => f.path).slice(0,1500), commits: records(commits,"commit"), prs: records(prs,"pr"), languages: languages.status === "fulfilled" ? languages.value : {}, images,manifest,unchanged:false };
+  const history=records(commits,"commit") as {id:string;message:string}[];
+  // Read actual changes for the newest commits; commit titles alone rarely describe a reproducible fix.
+  for(const item of history.slice(0,3)) {
+    if(!/^[a-f0-9]{40}$/i.test(item.id))continue;
+    try {
+      const raw=await github(`${base}/commits/${item.id}`) as {commit?:{message?:string;author?:{name?:string;date?:string}};author?:{login?:string};files?:{filename?:string;patch?:string}[]};
+      item.message=redact(JSON.stringify({message:raw.commit?.message,author:raw.author?.login,date:raw.commit?.author?.date,changes:raw.files?.slice(0,8).map(f=>({path:f.filename,patch:f.patch?.slice(0,1800)}))})).slice(0,10000);
+    } catch { /* List metadata remains usable, but never imply the diff was read. */ }
+  }
+  const issueRecords=issues.status==="fulfilled" && Array.isArray(issues.value) ? issues.value.filter(i=>!i.pull_request).slice(0,8).map(i=>({id:`issue:${i.number}`,title:redact(String(i.title)).slice(0,300),body:redact(String(i.body??"")).slice(0,2500)})) : [];
+  const images = tree.tree.filter(f => /\.(png|webp|jpg|jpeg)$/i.test(f.path) && /screen|preview|cover|hero|logo/i.test(f.path)).slice(0,10).map(f => `https://raw.githubusercontent.com/${repo.full_name}/${commit.sha}/${f.path.split("/").map(encodeURIComponent).join("/")}`);
+  return { sha: commit.sha, files, tree: tree.tree.map(f => f.path).slice(0,1500), commits:history, prs: records(prs,"pr") as {id:string;title:string;body:string}[],issues:issueRecords, languages: languages.status === "fulfilled" ? languages.value : {}, images,manifest,unchanged:false };
 }

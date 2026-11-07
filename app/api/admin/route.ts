@@ -8,13 +8,26 @@ import { snapshot } from "@/lib/automation/publish";
 import { generatedSchema } from "@/lib/automation/schema";
 import { runOne } from "@/lib/automation/worker";
 import { queueCounts, resetQueue, QueueRunningError } from "@/lib/automation/queue";
+import { createCitationCleanup, editDraft, reviewDraft } from "@/lib/automation/drafts";
 
 export const dynamic="force-dynamic";
 export const maxDuration=60;
+async function editorialData() {
+  try {
+    const [technicalAnalyses,contentDrafts]=await Promise.all([
+      db()`select id,project_id,commit_sha,facts,source_hash,pipeline_version,source_packet->'images' as image_candidates,created_at from portfolio_technical_analysis order by created_at desc limit 100`,
+      db()`select * from portfolio_content_drafts order by created_at desc limit 100`,
+    ]);
+    return {technicalAnalyses,contentDrafts,editorialReady:true};
+  } catch(error) {
+    if((error as {code?:string})?.code!=="42P01")throw error;
+    return {technicalAnalyses:[],contentDrafts:[],editorialReady:false};
+  }
+}
 export async function GET(request: NextRequest) {
   const denied=await requireAdmin(request); if (denied) return denied;
   try {
-    const [projects,analyses,jobs,logs,usage,config,queueSummary]=await Promise.all([
+    const [projects,analyses,jobs,logs,usage,config,queueSummary,editorial]=await Promise.all([
       db()`select * from projects order by display_order,created_at`,
       db()`select * from project_analysis order by created_at desc limit 150`,
       db()`select id,kind,status,attempts,error_message,updated_at from portfolio_jobs order by updated_at desc limit 100`,
@@ -23,8 +36,9 @@ export async function GET(request: NextRequest) {
         coalesce(sum(coalesce(actual_cost,reserved_cost)),0)::float as cost from ai_usage where created_at>=date_trunc('month',now())`,
       settings(),
       queueCounts(),
+      editorialData(),
     ]);
-    return Response.json({projects,analyses,jobs,logs,queueSummary,usage:usage[0],settings:config,connection:{
+    return Response.json({projects,analyses,jobs,logs,queueSummary,...editorial,usage:usage[0],settings:config,connection:{
       githubOwner:process.env.GITHUB_OWNER ?? "peeta0126",githubToken:!!process.env.GITHUB_TOKEN,openai:!!process.env.OPENAI_API_KEY,
       model:process.env.OPENAI_MODEL ?? null,
     }},{headers:{"Cache-Control":"private, no-store"}});
@@ -34,6 +48,10 @@ const id=z.string().uuid();
 const command=z.discriminatedUnion("action",[
   z.object({action:z.literal("sync")}), z.object({action:z.literal("work")}),
   z.object({action:z.literal("resetQueue"),confirmed:z.literal(true)}),
+  z.object({action:z.literal("rewriteDescription"),projectId:id,technicalId:id}),
+  z.object({action:z.literal("cleanupCitations"),projectId:id}),
+  z.object({action:z.literal("editDraft"),draftId:id,revision:z.number().int().positive(),content:projectSchema}),
+  z.object({action:z.literal("reviewDraft"),draftId:id,revision:z.number().int().positive(),decision:z.enum(["approve","reject"]),publish:z.boolean(),projectRevision:z.string()}),
   z.object({action:z.literal("settings"),value:settingsSchema}),
   z.object({action:z.literal("analyze"),projectId:id}),
   z.object({action:z.literal("retry"),jobId:id}),
@@ -48,14 +66,26 @@ export async function POST(request: NextRequest) {
     const parsed=command.safeParse(JSON.parse(raw));
     if (!parsed.success) return Response.json({error:"입력 형식이 잘못되었습니다.",details:parsed.error.issues.map(i=>`${i.path.join(".")}: ${i.message}`)},{status:400});
     const input=parsed.data;
+    if(["rewriteDescription","cleanupCitations","editDraft","reviewDraft"].includes(input.action)) {
+      const [tables]=await db()`select to_regclass('public.portfolio_technical_analysis') is not null and to_regclass('public.portfolio_content_drafts') is not null as ready`;
+      if(!tables.ready)return Response.json({error:"상세 초안 기능의 추가형 DB 마이그레이션이 필요합니다. 기존 공개 콘텐츠는 유지됩니다."},{status:503});
+    }
     if (input.action==="resetQueue") return Response.json({ok:true,queueReset:await resetQueue()});
+    if(input.action==="rewriteDescription") {
+      const [technical]=await db()`select id from portfolio_technical_analysis where id=${input.technicalId} and project_id=${input.projectId}`;
+      if(!technical)return Response.json({error:"재사용할 기술 분석이 없습니다. 먼저 기술 분석을 완료하세요."},{status:400});
+      await enqueue("rewrite",`rewrite:${input.projectId}`,{projectId:input.projectId,technicalId:input.technicalId});
+    }
+    if(input.action==="cleanupCitations")return Response.json({ok:true,draftId:await createCitationCleanup(input.projectId)});
+    if(input.action==="editDraft")await editDraft(input.draftId,input.revision,input.content);
+    if(input.action==="reviewDraft")await reviewDraft(input.draftId,input.revision,input.decision,input.publish,input.projectRevision);
     if (input.action==="sync") await enqueue("discover","discover",{});
     if (input.action==="work") return Response.json(await runOne());
     if (input.action==="settings") await db()`update portfolio_settings set value=${db().json(input.value)} where id=1`;
     if (input.action==="analyze") {
       const [p]=await db()`select github_repo_id from projects where id=${input.projectId}`;
       if (!p?.github_repo_id) return Response.json({error:"먼저 GitHub 동기화로 저장소를 연결하세요."},{status:400});
-      await enqueue("analyze",`repo:${p.github_repo_id}`,{projectId:input.projectId});
+      await enqueue("analyze",`repo:${p.github_repo_id}`,{projectId:input.projectId,refreshTechnical:true});
     }
     if (input.action==="retry") await db()`update portfolio_jobs set status='queued',attempts=0,available_at=now(),updated_at=now() where id=${input.jobId} and status='failed'`;
     if (input.action==="edit") {
@@ -82,11 +112,11 @@ export async function POST(request: NextRequest) {
         if (!a || a.status!=="pending") throw new Error("ALREADY_REVIEWED");
         if (input.decision==="reject") { await tx`update project_analysis set status='rejected' where id=${a.id}`; return; }
         const [p]=await tx`select * from projects where id=${a.project_id} for update`;
-        const next=projectSchema.parse(mergeProposal(p.content,generatedSchema.parse(a.analysis_result),p.locked_fields));
+        const next=projectSchema.parse(mergeProposal(p.content,generatedSchema.strip().parse(a.analysis_result),p.locked_fields));
         await tx`update projects set content=${tx.json(next)},analysis_status=${input.publish ? "published" : "reviewed"},visibility=${input.publish ? "public" : p.visibility},
           published_at=case when ${input.publish} then now() else published_at end,updated_at=now() where id=${p.id}`;
         await tx`update project_analysis set status=${input.publish ? "published" : "reviewed"} where id=${a.id}`;
-        for (const t of generatedSchema.parse(a.analysis_result).troubleshooting) {
+        for (const t of generatedSchema.strip().parse(a.analysis_result).troubleshooting) {
           await tx`insert into project_problem_solving(project_id,title,problem,approach,result,evidence,source_type)
             values (${p.id},${t.title},${t.problem},${t.solution},${t.result},${tx.json(t.evidence)},'ai')
             on conflict(project_id,title) do update set problem=excluded.problem,approach=excluded.approach,result=excluded.result,evidence=excluded.evidence where not project_problem_solving.manually_edited`;

@@ -14,7 +14,7 @@ export async function settings() {
 export async function log(event: string, status: string, repoId?: number, message?: string) {
   await db()`insert into sync_logs (repository_id,event_type,status,error_message) values (${repoId ?? null},${event},${status},${message ?? null})`;
 }
-export async function enqueue(kind: "discover" | "analyze", key: string, payload: object) {
+export async function enqueue(kind: "discover" | "analyze" | "rewrite", key: string, payload: object) {
   if (kind==="discover" && key==="discover") {
     await db().begin(async tx=>{
       await tx`select pg_advisory_xact_lock(913530)`;

@@ -44,6 +44,7 @@ export type ProjectDetail = {
   performance?: string;
   result?: string;
   retrospective?: string;
+  limitations?: string[];
 };
 
 export type Project = {

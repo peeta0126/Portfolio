@@ -5,6 +5,7 @@ export type EvidenceSource = {
   files: { path: string; sha: string; content: string }[];
   commits: { id: string }[];
   prs: { id: string }[];
+  issues?: { id: string }[];
   tree: string[];
 };
 export type EvidenceIssue = { field: string; reference: string; reason: string };
@@ -17,7 +18,7 @@ export type EvidenceDiagnostics = {
 };
 
 export function allowedEvidence(source: EvidenceSource) {
-  return [...source.files.map(f => f.path), ...source.commits.map(c => c.id), ...source.prs.map(p => p.id)];
+  return [...source.files.map(f => f.path), ...source.commits.map(c => c.id), ...source.prs.map(p => p.id),...(source.issues??[]).map(i=>i.id)];
 }
 
 // Never resolve basenames, case changes, repository prefixes, URLs or traversal.
@@ -25,7 +26,7 @@ export function allowedEvidence(source: EvidenceSource) {
 export function validateEvidence(generated: Generated, source: EvidenceSource) {
   const allowed = allowedEvidence(source);
   const exact = new Set(allowed);
-  const history = new Set([...source.commits, ...source.prs].map(item => item.id));
+  const history = new Set([...source.commits, ...source.prs,...(source.issues??[])].map(item => item.id));
   const diagnostics: EvidenceDiagnostics = {
     commit: source.sha, analyzedFiles: source.files.map(({ path, sha }) => ({ path, sha })),
     allowed, submitted: [], issues: [],

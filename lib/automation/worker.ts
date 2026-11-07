@@ -8,6 +8,7 @@ import { analyze, EvidenceError } from "./ai";
 import type { EvidenceDiagnostics } from "./evidence";
 import { snapshot } from "./publish";
 import type { Project } from "../../types";
+import { rewriteDescription } from "./drafts";
 
 async function discover(payload: { page?: number; seen?: number[]; run?: string }) {
   const page = payload.page ?? 1, run = payload.run ?? randomUUID();
@@ -37,7 +38,7 @@ async function discover(payload: { page?: number; seen?: number[]; run?: string 
     await log("discovery_completed","success");
   }
 }
-async function analyzeProject(projectId: string, evidenceFeedback?: EvidenceDiagnostics) {
+async function analyzeProject(projectId: string, evidenceFeedback?: EvidenceDiagnostics, refreshTechnical=false) {
   const [project] = await db()`select * from projects where id=${projectId}`;
   if (!project || !project.auto_register) return;
   // Fetch current repository metadata by immutable ID; never trust a saved name or a webhook payload.
@@ -55,16 +56,17 @@ async function analyzeProject(projectId: string, evidenceFeedback?: EvidenceDiag
   }
   const config = await settings();
   if (!eligible(repo,config)) return;
-  const source = await collect(repo,project.source_manifest);
-    const [prior] = await db()`select id from project_analysis where project_id=${projectId} and commit_sha=${source.sha}`;
-  if (prior) return;
+  const source = await collect(repo,refreshTechnical?[]:project.source_manifest);
+    const [prior] = await db()`select id from project_analysis where project_id=${projectId} and commit_sha=${source.sha}
+      union all select id from portfolio_content_drafts where project_id=${projectId} and commit_sha=${source.sha} limit 1`;
+  if (prior&&!refreshTechnical) return;
   const hash = meaningfulHash(source.files);
   const priorPaths=new Set((project.source_manifest as {path:string}[]).map(f=>f.path));
   const nextPaths=new Set(source.manifest.map(f=>f.path));
   const hasNewSource=source.manifest.some(f=>!priorPaths.has(f.path));
   const hasRemovedSource=[...priorPaths].some(path=>!nextPaths.has(path));
   const clipped=source.files.some(f=>f.content.length>=10000);
-  if (source.unchanged || project.source_hash === hash && !hasNewSource && !hasRemovedSource && !clipped) {
+  if (!refreshTechnical&&(source.unchanged || project.source_hash === hash && !hasNewSource && !hasRemovedSource && !clipped)) {
     await db()`update projects set last_commit=${source.sha},source_manifest=${db().json(source.manifest)},last_synced_at=now() where id=${projectId}`;
     await log("analysis_skipped_unchanged","success",repo.id); return;
   }
@@ -76,14 +78,10 @@ async function analyzeProject(projectId: string, evidenceFeedback?: EvidenceDiag
     // Serialize approval/manual edits with analysis. Read locks again after the provider call.
     const [latest] = await tx`select * from projects where id=${projectId} for update`;
     const next = mergeProposal(latest.content,result.generated,latest.locked_fields);
-    const canPublish = config.autoPublish && latest.locked_fields.length === 0 && result.generated.reviewNotes.length === 0;
-    await tx`insert into project_analysis(project_id,commit_sha,analyzed_files,analysis_result,generated_content,token_usage,estimated_cost,status)
-      values (${projectId},${source.sha},${tx.json(source.files.map(f=>({path:f.path,sha:f.sha})))},${tx.json({...result.generated,images:source.images,languages:source.languages,tree:source.tree,commits:source.commits,prs:source.prs})},${tx.json(next)},${tx.json(result.usage)},${result.estimatedCost},${canPublish ? "published" : "pending"}) on conflict(project_id,commit_sha) do nothing`;
-    await tx`update projects set last_commit=${source.sha},source_hash=${hash},source_manifest=${tx.json(source.manifest)},last_synced_at=now(),project_type=${result.generated.projectType},analysis_status=${canPublish ? "published" : "ai_update_proposed"},updated_at=now() where id=${projectId}`;
-    if (canPublish) {
-      await tx`update projects set content=${tx.json(next)},visibility='public',published_at=now() where id=${projectId}`;
-      await snapshot(tx);
-    }
+    // Editorial content always requires explicit approval, even if legacy autoPublish is enabled.
+    await tx`insert into portfolio_content_drafts(project_id,technical_id,commit_sha,analyzed_files,analysis_result,generated_content,base_content,token_usage,estimated_cost,status)
+      values (${projectId},${result.technicalId},${source.sha},${tx.json(source.files.map(f=>({path:f.path,sha:f.sha})))},${tx.json(result.generated)},${tx.json(next)},${tx.json(latest.content)},${tx.json(result.usage)},${result.estimatedCost},'pending')`;
+    await tx`update projects set last_commit=${source.sha},source_hash=${hash},source_manifest=${tx.json(source.manifest)},last_synced_at=now(),project_type=${result.generated.projectType},analysis_status='ai_update_proposed',updated_at=now() where id=${projectId}`;
   });
   await log("analysis_completed","success",repo.id);
 }
@@ -95,7 +93,8 @@ export async function runOne() {
   if (!job) return { status:"idle" };
   try {
     if (job.kind === "discover") await discover(job.payload);
-    else await analyzeProject(job.payload.projectId,job.payload.evidenceFeedback);
+    else if(job.kind === "rewrite")await rewriteDescription(job.payload.projectId,job.payload.technicalId);
+    else await analyzeProject(job.payload.projectId,job.payload.evidenceFeedback,job.payload.refreshTechnical===true);
     await db()`update portfolio_jobs set status='done',lease_until=null,updated_at=now() where id=${job.id} and lease_token=${lease}`;
     return { status:"done", kind:job.kind };
   } catch (error) {

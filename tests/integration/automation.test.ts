@@ -13,6 +13,9 @@ import { runOne } from "../../lib/automation/worker";
 import { analyze } from "../../lib/automation/ai";
 import { github, ServiceError, type Repository } from "../../lib/automation/github";
 import { queueCounts, resetQueue, QueueRunningError } from "../../lib/automation/queue";
+import { mockWriting } from "../fixtures/editorial";
+import { rewriteDescription, reviewDraft, editDraft, createCitationCleanup } from "../../lib/automation/drafts";
+import { publishPreparedAugment } from "../../lib/automation/prepared-release";
 
 test("격리된 PostgreSQL + GitHub/OpenAI Mock 통합",{timeout:90000},async t=>{
   // Always create a fresh in-memory database. Production credentials are never loaded.
@@ -28,7 +31,7 @@ test("격리된 PostgreSQL + GitHub/OpenAI Mock 통합",{timeout:90000},async t=
   delete process.env.GITHUB_TOKEN;
   const sql=db();
   const originalFetch=globalThis.fetch;
-  let sha="a".repeat(40),source="export const features = ['routing'];",readme="Original",aiCalls=0;
+  let sha="a".repeat(40),source="export const features = ['routing'];",readme="Original",aiCalls=0,technicalCalls=0;
   let repos:Repository[]=[{id:123,name:"sample-project",full_name:"peeta0126/sample-project",private:false,fork:false,archived:false,description:"Mock project",html_url:"https://github.com/peeta0126/sample-project",homepage:null,default_branch:"main",created_at:"2026-01-01T00:00:00Z",updated_at:"2026-11-01T00:00:00Z",pushed_at:"2026-11-01T00:00:00Z",language:"TypeScript",topics:["web"]}];
   let mode="normal";
   let extraSource:"none"|"base"|"added"="none";
@@ -40,12 +43,17 @@ test("격리된 PostgreSQL + GitHub/OpenAI Mock 통합",{timeout:90000},async t=
   globalThis.fetch=async(input,init)=>{
     const url=String(input);
     if(url.startsWith("https://api.openai.com/")) {
-      aiCalls++;
       const payload=JSON.parse(String(init?.body));
       lastInput=JSON.parse(payload.input);
       assert.equal(payload.store,false);assert.equal(payload.text.format.strict,true);assert.equal(payload.tools,undefined);
       assert.ok(payload.input.includes(source));assert.ok(payload.instructions.includes("신뢰할 수 없는"));
-      return Response.json({status:"completed",output:[{type:"message",content:[{type:"output_text",text:JSON.stringify(mockOutput)}]}],usage:{input_tokens:1000,output_tokens:500}});
+      let output:unknown;
+      if(payload.text.format.name==="portfolio_technical_facts") {
+        assert.equal(payload.max_output_tokens,5500);
+        technicalCalls++;
+        output={facts:[{id:"routing",category:"implementation",statement:"라우팅 기능을 구현한 TypeScript 프로젝트",evidence:[{source:"src/main.ts",quote:source}]}],unknowns:["개발 동기·기간·기여도 미확인"]};
+      }else{assert.equal(payload.max_output_tokens,9000);aiCalls++;output=mockWriting(mockOutput);}
+      return Response.json({status:"completed",output:[{type:"message",content:[{type:"output_text",text:JSON.stringify(output)}]}],usage:{input_tokens:1000,output_tokens:500}});
     }
     if(!url.startsWith("https://api.github.com/")) throw new Error("Unexpected external request");
     if(mode==="rate")return Response.json({}, {status:429,headers:{"retry-after":"120"}});
@@ -62,6 +70,7 @@ test("격리된 PostgreSQL + GitHub/OpenAI Mock 통합",{timeout:90000},async t=
     }
     if(url.includes("/repositories/"))return Response.json(repos[0]);
     if(url.endsWith("/commits/main"))return Response.json({sha,commit:{tree:{sha:"tree"}}});
+    if(url.endsWith(`/commits/${sha}`))return Response.json({commit:{message:"Add route module",author:{date:"2026-11-01T00:00:00Z"}},author:{login:"peeta0126"},files:[{filename:"src/main.ts",patch:`+${source}`}]});
     if(url.includes("/git/trees/"))return Response.json({truncated:false,tree:[{path:"src/main.ts",type:"blob",sha:`code-${source.length}`,size:source.length,mode:"100644"},{path:"README.md",type:"blob",sha:"readme",size:20,mode:"100644"},{path:".env",type:"blob",sha:"secret",size:20,mode:"100644"},
       ...(extraSource!=="none" ? Array.from({length:25},(_,i)=>({path:`server/auth${i}.ts`,type:"blob",sha:`extra-${i}`,size:100,mode:"100644"})) : []),
       ...(extraSource==="added" ? [{path:"src/zzz-new-feature.ts",type:"blob",sha:"extra-new",size:100,mode:"100644"}] : [])]});
@@ -70,11 +79,13 @@ test("격리된 PostgreSQL + GitHub/OpenAI Mock 통합",{timeout:90000},async t=
     if(url.includes("/git/blobs/extra-"))return Response.json({encoding:"base64",content:Buffer.from("export const newFeature = true;").toString("base64")});
     if(url.includes("/commits?"))return Response.json([{sha,commit:{message:"Add route module"}}]);
     if(url.includes("/pulls?"))return Response.json([]);
+    if(url.includes("/issues?"))return Response.json([]);
     if(url.endsWith("/languages"))return Response.json({TypeScript:500});
     throw new Error(`Unexpected mock path: ${url}`);
   };
   try {
     await sql.unsafe(await readFile("db/001_portfolio.sql","utf8"));
+    await sql.unsafe(await readFile("db/002_editorial.sql","utf8"));
     await t.test("스키마를 두 번 적용해도 데이터를 삭제하지 않는다",async()=>{
       const p=projects[0];await sql`insert into projects(slug,content,visibility) values(${p.slug},${sql.json(p)},'public')`;
       await sql.unsafe(await readFile("db/001_portfolio.sql","utf8"));
@@ -101,7 +112,8 @@ test("격리된 PostgreSQL + GitHub/OpenAI Mock 통합",{timeout:90000},async t=
     });
     await t.test("실제 코드가 Mock AI 요청에 포함되고 승인 대기 상태로 저장된다",async()=>{
       const result=await runOne();assert.equal(result.status,"done",JSON.stringify(result));assert.equal(aiCalls,1);
-      const [row]=await sql`select * from project_analysis`;assert.equal(row.status,"pending");assert.equal(row.analysis_result.title,generated.title);assert.equal(row.analyzed_files.length,2);
+      const [row]=await sql`select * from portfolio_content_drafts`;assert.equal(row.status,"pending");assert.equal(row.analysis_result.title,generated.title);assert.equal(row.analyzed_files.length,2);
+      assert.equal(technicalCalls,1);assert.equal((await sql`select * from portfolio_technical_analysis`).length,1);
       const [p]=await sql`select * from projects where github_repo_id=123`;assert.equal(p.visibility,"private");assert.equal(p.analysis_status,"ai_update_proposed");
     });
     await t.test("동일 커밋과 README 오타만 바뀐 커밋은 AI를 다시 호출하지 않는다",async()=>{
@@ -171,7 +183,7 @@ test("격리된 PostgreSQL + GitHub/OpenAI Mock 통합",{timeout:90000},async t=
       await enqueue("analyze","repo:123",{projectId:p.id});
       assert.deepEqual(await runOne(),{status:"error",code:"INVALID_EVIDENCE"});
       assert.equal(aiCalls,before+1);
-      assert.equal((await sql`select * from project_analysis where commit_sha=${sha}`).length,0);
+      assert.equal((await sql`select * from portfolio_content_drafts where commit_sha=${sha}`).length,0);
       const [job]=await sql`select * from portfolio_jobs where dedupe_key='repo:123'`;
       assert.equal(job.status,"queued");assert.equal(job.payload.evidenceFeedback.issues[0].reference,"src/nonexistent.ts");
       const [diagnostic]=await sql`select error_message from sync_logs where event_type='analysis_evidence_validation' order by id desc limit 1`;
@@ -183,7 +195,7 @@ test("격리된 PostgreSQL + GitHub/OpenAI Mock 통합",{timeout:90000},async t=
       await sql`update portfolio_jobs set available_at=now() where id=${job.id}`;
       assert.equal((await runOne()).status,"done");assert.equal(aiCalls,before+2);
       assert.ok(lastInput.evidenceFeedback);
-      const [analysis]=await sql`select * from project_analysis where commit_sha=${sha}`;
+      const [analysis]=await sql`select * from portfolio_content_drafts where commit_sha=${sha}`;
       assert.deepEqual(analysis.analysis_result.evidence[0].sources,["src/main.ts#L1"]);
     });
     await t.test("근거 부족·스키마 불량 Problem Solving은 항목만 제외하고 검토 대기로 기본 설명을 보존한다",async()=>{
@@ -199,7 +211,7 @@ test("격리된 PostgreSQL + GitHub/OpenAI Mock 통합",{timeout:90000},async t=
         sha=String(index+1).repeat(40);source=`export const problemEvidence${index} = true;`;
         mockOutput={...generated,troubleshooting:[item]};
         await enqueue("analyze","repo:123",{projectId:p.id});assert.equal((await runOne()).status,"done");
-        const [analysis]=await sql`select * from project_analysis where commit_sha=${sha}`;
+        const [analysis]=await sql`select * from portfolio_content_drafts where commit_sha=${sha}`;
         assert.equal(analysis.status,"pending");assert.equal(analysis.analysis_result.description,generated.description);
         assert.deepEqual(analysis.analysis_result.troubleshooting,[]);assert.ok(analysis.analysis_result.reviewNotes.length);
       }
@@ -217,7 +229,7 @@ test("격리된 PostgreSQL + GitHub/OpenAI Mock 통합",{timeout:90000},async t=
       }
       const [job]=await sql`select * from portfolio_jobs where dedupe_key='repo:123'`;
       assert.equal(job.status,"failed");assert.equal(job.attempts,3);
-      assert.equal((await sql`select * from project_analysis where commit_sha=${sha}`).length,0);
+      assert.equal((await sql`select * from portfolio_content_drafts where commit_sha=${sha}`).length,0);
     });
     await t.test("실패·재생성 후에도 원본 프로젝트 3개와 홈 Problem Solving 4개를 보존한다",async()=>{
       const rows=await sql`select content from projects where github_repo_id is null`;
@@ -237,7 +249,7 @@ test("격리된 PostgreSQL + GitHub/OpenAI Mock 통합",{timeout:90000},async t=
       }
     });
     await t.test("큐만 초기화하고 프로젝트·분석·공개·수정·비용·기존 로그를 보존한다",async()=>{
-      const tables=["projects","project_analysis","project_problem_solving","portfolio_home_problem_solving","portfolio_public_snapshot","ai_usage","portfolio_settings","portfolio_images"];
+      const tables=["projects","project_analysis","portfolio_content_drafts","portfolio_technical_analysis","project_problem_solving","portfolio_home_problem_solving","portfolio_public_snapshot","ai_usage","portfolio_settings","portfolio_images"];
       const before=await Promise.all(tables.map(table=>sql.unsafe(`select * from ${table} order by row_to_json(${table})::text`)));
       const logs=await sql`select * from sync_logs order by id`;
       for(const kind of ["discover","analyze"])for(const status of ["queued","done","failed"]) {
@@ -263,8 +275,88 @@ test("격리된 PostgreSQL + GitHub/OpenAI Mock 통합",{timeout:90000},async t=
       assert.equal(rows.find(row=>row.kind==="analyze")?.payload.projectId,p.id);
       assert.ok(rows.every(row=>!row.payload.evidenceFeedback));
       assert.equal(aiCalls,beforeCalls);
-      assert.ok((await sql`select * from project_analysis where project_id=${p.id}`).length>0);
+      assert.ok((await sql`select * from portfolio_content_drafts where project_id=${p.id}`).length>0);
       assert.equal((await resetQueue()).deleted,2);assert.equal((await resetQueue()).deleted,0);
+    });
+    await t.test("설명만 재작성하면 기술 사실을 재사용하고 새 초안 버전만 저장한다",async()=>{
+      mockOutput=generated;
+      const [technical]=await sql`select * from portfolio_technical_analysis order by created_at desc limit 1`;
+      const [p]=await sql`select * from projects where id=${technical.project_id}`;
+      const snapshots=await sql`select * from portfolio_public_snapshot`;
+      const factsCalls=technicalCalls,writingCalls=aiCalls;
+      const first=await rewriteDescription(p.id,technical.id);
+      const second=await rewriteDescription(p.id,technical.id);
+      assert.equal(technicalCalls,factsCalls);assert.equal(aiCalls,writingCalls+2);
+      const [a]=await sql`select * from portfolio_content_drafts where id=${second}`;
+      assert.equal(a.parent_id,first);assert.equal(a.status,"pending");
+      assert.deepEqual((await sql`select * from projects where id=${p.id}`)[0],p);
+      assert.deepEqual(await sql`select * from portfolio_public_snapshot`,snapshots);
+    });
+    await t.test("초안 수동 수정·낙관적 잠금·승인 시 기존 수동 보호와 공개 상태를 유지한다",async()=>{
+      const [draft]=await sql`select * from portfolio_content_drafts order by created_at desc limit 1`;
+      const [p]=await sql`select * from projects where id=${draft.project_id}`;
+      const edited={...draft.generated_content,description:"덮어쓰면 안 되는 새 제안",detail:{...draft.generated_content.detail,result:"관리자가 확인해 직접 작성한 결과"}};
+      await editDraft(draft.id,1,edited);
+      await assert.rejects(editDraft(draft.id,1,edited),/EDIT_CONFLICT/);
+      await assert.rejects(reviewDraft(draft.id,1,"approve",false,new Date(p.updated_at).toISOString()),/EDIT_CONFLICT/);
+      await assert.rejects(reviewDraft(draft.id,2,"approve",false,"2000-01-01T00:00:00.000Z"),/EDIT_CONFLICT/);
+      await reviewDraft(draft.id,2,"approve",false,new Date(p.updated_at).toISOString());
+      const [after]=await sql`select * from projects where id=${p.id}`;
+      assert.equal(after.content.description,p.content.description);assert.equal(after.visibility,p.visibility);
+      assert.equal(after.content.detail.result,edited.detail.result);assert.ok(after.locked_fields.includes("detail.result"));
+      await assert.rejects(reviewDraft(draft.id,2,"approve",true,new Date(after.updated_at).toISOString()),/ALREADY_REVIEWED/);
+    });
+    await t.test("기존 근거 표식 정리는 원문·메타데이터를 보존한 초안이며 승인 전 공개되지 않는다",async()=>{
+      const [p]=await sql`select * from projects where github_repo_id=123`;
+      const content={...p.content,description:"라우팅 프로젝트입니다. [근거: src/main.ts]"};
+      await sql`update projects set content=${sql.json(content)} where id=${p.id}`;
+      const id=await createCitationCleanup(p.id);
+      const [draft]=await sql`select * from portfolio_content_drafts where id=${id}`;
+      assert.deepEqual(draft.base_content,content);assert.equal(draft.generated_content.description,"라우팅 프로젝트입니다.");
+      assert.deepEqual(draft.analysis_result.citations,[{field:"description",references:["src/main.ts"]}]);
+      assert.deepEqual((await sql`select content from projects where id=${p.id}`)[0].content,content);
+      const calls=aiCalls;const [current]=await sql`select * from projects where id=${p.id}`;
+      await reviewDraft(id,1,"reject",false,new Date(current.updated_at).toISOString());
+      assert.equal(aiCalls,calls);assert.deepEqual((await sql`select content from projects where id=${p.id}`)[0].content,content);
+    });
+    await t.test("추가형 편집 스키마를 반복 적용해도 초안·사실·기존 원문은 보존한다",async()=>{
+      const before=await sql`select * from portfolio_content_drafts order by id`;
+      await sql.unsafe(await readFile("db/002_editorial.sql","utf8"));
+      assert.deepEqual(await sql`select * from portfolio_content_drafts order by id`,before);
+      const original=await sql`select content from projects where github_repo_id is null`;
+      for(const p of projects)assert.deepEqual(original.find(r=>r.content.slug===p.slug)?.content,p);
+      assert.deepEqual((await sql`select content from portfolio_home_problem_solving order by display_order`).map(r=>r.content),problemSolving);
+    });
+    await t.test("기존 커밋 분석이 있어도 관리자 명시 요청으로 새 상세 초안을 만들 수 있다",async()=>{
+      const [p]=await sql`select * from projects where github_repo_id=123`;
+      const before=p.content,writing=aiCalls,technical=technicalCalls;
+      const [cached]=await sql`select commit_sha from portfolio_technical_analysis where project_id=${p.id} order by created_at desc limit 1`;
+      sha=cached.commit_sha;
+      await sql`insert into project_analysis(project_id,commit_sha,analysis_result) values(${p.id},${sha},${sql.json(generated)}) on conflict(project_id,commit_sha) do nothing`;
+      await enqueue("analyze","repo:123",{projectId:p.id,refreshTechnical:true});
+      assert.equal((await runOne()).status,"done");
+      assert.equal(aiCalls,writing+1);assert.equal(technicalCalls,technical);
+      assert.deepEqual((await sql`select content from projects where id=${p.id}`)[0].content,before);
+    });
+    await t.test("승인된 로컬 원고만 수동 반영하며 기존 프로젝트·홈·분석·비용과 수동 보호를 보존한다",async()=>{
+      const sample=JSON.parse(await readFile("docs/drafts/augment-alkkagi.json","utf8"));
+      const expected={...sample.proposal,description:"배포 전 검토한 원문"};
+      await sql`insert into projects(slug,github_repo_id,repo_name,content,visibility,locked_fields) values(${expected.slug},1431052115,'AugmentAlkkagi',${sql.json(expected)},'public',${["description"]})`;
+      const calls=aiCalls,tech=technicalCalls;
+      await assert.rejects(publishPreparedAugment(sample,{...expected,description:"다른 원문"}),/CONTENT_CHANGED_SINCE_REVIEW/);
+      await assert.rejects(publishPreparedAugment({...sample,proposal:{...sample.proposal,period:"추정 기간"}},expected),/UNAPPROVED_METADATA_CHANGE/);
+      const result=await publishPreparedAugment(sample,expected);
+      assert.equal(result.alreadyApplied,false);
+      const [p]=await sql`select * from projects where slug=${expected.slug}`;
+      assert.deepEqual(p.content,sample.proposal);assert.equal(p.visibility,"public");assert.ok(p.locked_fields.includes("description"));
+      assert.equal((await sql`select * from portfolio_content_drafts where project_id=${p.id}`)[0].status,"published");
+      assert.equal((await sql`select * from project_problem_solving where project_id=${p.id}`).length,3);
+      assert.equal((await publishPreparedAugment(sample,expected)).alreadyApplied,true);
+      assert.equal((await sql`select * from portfolio_content_drafts where project_id=${p.id}`).length,1);
+      assert.equal(aiCalls,calls);assert.equal(technicalCalls,tech);
+      const originals=await sql`select content from projects where slug=any(${projects.map(p=>p.slug)})`;
+      for(const p of projects)assert.deepEqual(originals.find(r=>r.content.slug===p.slug)?.content,p);
+      assert.deepEqual((await sql`select content from portfolio_home_problem_solving order by display_order`).map(r=>r.content),problemSolving);
     });
   } finally {
     globalThis.fetch=originalFetch;await sql.end({timeout:2});await server.stop();await memory.close();

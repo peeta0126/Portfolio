@@ -7,11 +7,14 @@ import type { Project } from "@/types";
 import type { Settings } from "@/lib/automation/schema";
 import { mergeProposal } from "@/lib/automation/content";
 import type { Generated } from "@/lib/automation/schema";
+import { ContentDraftCard, type ContentDraft } from "./content-draft-card";
+import type { TechnicalAnalysis } from "@/lib/automation/editorial";
+import { hasInlineEvidence } from "@/lib/automation/prose";
 
 type ProjectRow={id:string;repo_name:string|null;github_repo_id:number|null;content:Project;visibility:"public"|"private";display_order:number;auto_register:boolean;locked_fields:string[];analysis_status:string;updated_at:string;last_synced_at:string|null;project_type:string|null};
 type Analysis={id:string;project_id:string;commit_sha:string;status:string;analysis_result:Generated & {images?:string[]};generated_content:Project;analyzed_files:{path:string;sha:string}[];estimated_cost:number;created_at:string};
 type Job={id:string;kind:string;status:string;attempts:number;error_message:string|null;updated_at:string};
-type State={projects:ProjectRow[];analyses:Analysis[];jobs:Job[];queueSummary:{kind:string;status:string;count:number}[];logs:{id:number;event_type:string;status:string;error_message:string|null;created_at:string}[];usage:{calls:number;input_tokens:number;output_tokens:number;cost:number};settings:Settings;connection:{githubOwner:string;githubToken:boolean;openai:boolean;model:string|null}};
+type State={technicalAnalyses:{id:string;project_id:string;commit_sha:string;facts:TechnicalAnalysis;created_at:string}[];contentDrafts:ContentDraft[];projects:ProjectRow[];analyses:Analysis[];jobs:Job[];queueSummary:{kind:string;status:string;count:number}[];logs:{id:number;event_type:string;status:string;error_message:string|null;created_at:string}[];usage:{calls:number;input_tokens:number;output_tokens:number;cost:number};settings:Settings;connection:{githubOwner:string;githubToken:boolean;openai:boolean;model:string|null}};
 const field="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-sm text-zinc-950 focus:outline-none focus:ring-2 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-950 dark:text-white";
 const button="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-zinc-300 px-4 py-2 text-sm transition hover:bg-zinc-100 disabled:cursor-wait disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-800";
 const card="rounded-2xl border border-zinc-200 bg-white p-5 sm:p-7 dark:border-zinc-800 dark:bg-zinc-950";
@@ -70,10 +73,12 @@ export function AdminDashboard({authenticated,configured}:{authenticated:boolean
     }catch(error){setMessage(error instanceof Error ? error.message : "이미지 업로드 실패");}finally{setBusy(false);}
   }
   const pending=data?.analyses.filter(a=>a.status==="pending") ?? [];
+  const draftPending=data?.contentDrafts.filter(d=>d.status==="pending")??[];
+  const technical=data?.technicalAnalyses.find(t=>t.project_id===selected);
   const queueTotal=data?.queueSummary.reduce((sum,row)=>sum+row.count,0) ?? 0;
   const queueRunning=data?.queueSummary.some(row=>row.status==="running") ?? false;
   function confirmQueueReset() {
-    if(window.confirm("discover·analyze 작업의 대기·완료·실패 항목을 초기화할까요?\n프로젝트, Problem Solving, AI 분석 결과, 관리자 수정, 공개 상태, API 사용량·비용, 동기화 로그는 유지됩니다.\n실행 중인 작업이 있으면 초기화하지 않습니다.")) {
+    if(window.confirm("discover·analyze·rewrite 작업의 대기·완료·실패 항목을 초기화할까요?\n프로젝트, Problem Solving, AI 분석 결과, 관리자 수정, 공개 상태, API 사용량·비용, 동기화 로그는 유지됩니다.\n실행 중인 작업이 있으면 초기화하지 않습니다.")) {
       void action({action:"resetQueue",confirmed:true});
     }
   }
@@ -91,7 +96,7 @@ export function AdminDashboard({authenticated,configured}:{authenticated:boolean
       <button className={`${button} mt-5`} disabled={busy||!configured}>로그인</button>
     </form> : <>
       <nav aria-label="관리 메뉴" className="mt-8 flex flex-wrap gap-2 border-b border-zinc-200 pb-5 dark:border-zinc-800">
-        {[["projects","프로젝트"],["review",`AI 검토 ${pending.length}`],["sync","동기화"],["budget","비용·설정"]].map(([key,label])=><button className={`${button} ${tab===key ? "bg-zinc-100 font-semibold dark:bg-zinc-800" : ""}`} key={key} aria-pressed={tab===key} onClick={()=>setTab(key)}>{label}</button>)}
+        {[["projects","프로젝트"],["review",`AI 검토 ${pending.length+draftPending.length}`],["sync","동기화"],["budget","비용·설정"]].map(([key,label])=><button className={`${button} ${tab===key ? "bg-zinc-100 font-semibold dark:bg-zinc-800" : ""}`} key={key} aria-pressed={tab===key} onClick={()=>setTab(key)}>{label}</button>)}
         <button className={`${button} ml-auto`} disabled={busy} onClick={()=>{setBusy(true);load().catch(e=>setMessage(e.message)).finally(()=>setBusy(false));}}><RefreshCw size={16} aria-hidden="true"/>새로고침</button>
       </nav>
       {!data ? <p className="mt-8">관리 데이터를 불러오는 중입니다. 연결 오류가 있으면 위 메시지를 확인하세요.</p> : <>
@@ -104,9 +109,12 @@ export function AdminDashboard({authenticated,configured}:{authenticated:boolean
             <label className="mt-5 flex items-center gap-2 text-sm"><Upload size={16} aria-hidden="true"/>대표 이미지<input type="file" accept="image/png,image/jpeg,image/webp" disabled={busy} className="min-w-0 max-w-full text-xs" onChange={e=>{void upload(e.target.files?.[0]);e.target.value="";}}/></label>
             <div className="mt-6 flex flex-wrap gap-3"><button className={button} disabled={busy} onClick={()=>{try {void action({action:"edit",projectId:project.id,content:JSON.parse(draft),visibility,displayOrder:order,autoRegister:auto,revision:new Date(project.updated_at).toISOString()});}catch{setMessage("JSON 형식을 확인하세요.");}}}>변경 저장</button><button className={button} disabled={busy||!project.github_repo_id} onClick={()=>void action({action:"analyze",projectId:project.id})}>분석 요청</button></div>
             <p className="mt-5 break-words text-xs leading-6 text-zinc-500">보호된 필드: {project.locked_fields.join(", ")||"없음"}<br/>마지막 동기화: {stamp(project.last_synced_at)}</p>
+            <div className="mt-6 flex flex-wrap gap-3"><button className={button} disabled={busy||!technical} onClick={()=>technical&&void action({action:"rewriteDescription",projectId:project.id,technicalId:technical.id})}>설명만 다시 생성</button>{hasInlineEvidence(JSON.stringify(project.content))&&<button className={button} disabled={busy} onClick={()=>void action({action:"cleanupCitations",projectId:project.id})}>본문 근거 분리 초안 만들기</button>}</div>
+            <p className="mt-3 text-xs leading-6 text-zinc-500">설명 재작성은 저장된 기술 분석을 재사용해 큐에 예약합니다. 기존 설명과 공개 상태는 승인 전까지 유지됩니다.{!technical&&" 먼저 새 기술 분석을 완료해야 합니다. 이전 AI 분석은 아래 기록에서 참고할 수 있습니다."}</p>
+            <details className="mt-5"><summary className="cursor-pointer text-sm">기술 분석·근거·미확인 정보</summary><pre className="mt-3 max-h-96 overflow-auto whitespace-pre-wrap break-words text-xs leading-6">{JSON.stringify(technical??{message:"새 기술 분석 없음",legacy:data.analyses.filter(a=>a.project_id===project.id)},null,2)}</pre></details>
           </section> : <div className={card}>수정할 프로젝트를 선택하세요. 처음 연결하는 경우 동기화 탭에서 저장소를 수집하세요.</div>}
         </div>}
-        {tab==="review" && <div className="mt-7 space-y-6">{pending.length===0 && <p>검토 대기 중인 분석이 없습니다.</p>}{pending.map(a=>{
+        {tab==="review" && <div className="mt-7 space-y-6">{draftPending.map(d=>{const current=data.projects.find(p=>p.id===d.project_id);return current?<ContentDraftCard key={`${d.id}:${d.revision}`} draft={d} current={current} previous={data.contentDrafts.find(p=>p.id===d.parent_id)} busy={busy} onAction={action}/>:null;})}<details className={card}><summary className="cursor-pointer">상세 초안 버전 기록 {data.contentDrafts.length}건</summary><div className="mt-4 space-y-6">{data.contentDrafts.filter(d=>d.status!=="pending").map(d=>{const current=data.projects.find(p=>p.id===d.project_id);return current?<ContentDraftCard key={d.id} draft={d} current={current} previous={data.contentDrafts.find(p=>p.id===d.parent_id)} busy={busy} onAction={action}/>:null;})}</div></details>{pending.length===0&&draftPending.length===0 && <p>검토 대기 중인 분석이 없습니다.</p>}{pending.map(a=>{
           const current=data.projects.find(p=>p.id===a.project_id);if(!current)return null;
           const next=mergeProposal(current.content,a.analysis_result,current.locked_fields);
           return <article className={card} key={a.id}><div className="flex flex-wrap justify-between gap-3"><h2 className="text-xl font-semibold">{current.content.title}</h2><span className="break-all font-mono text-xs text-zinc-500">{a.commit_sha.slice(0,12)} · ${Number(a.estimated_cost).toFixed(4)}</span></div>

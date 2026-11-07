@@ -52,7 +52,7 @@ test("원본 코드·설정은 포함하고 비밀정보·산출물·바이너�
 });
 test("파일 수·크기 상한 및 심볼릭 링크 제외",()=>{
   const files=Array.from({length:80},(_,i)=>({path:`src/file${i}.ts`,sha:String(i),size:100,type:"blob",mode:"100644"}));
-  files.push({path:"package.json",sha:"p",size:100,type:"blob",mode:"100644"},{path:"src/large.ts",sha:"l",size:50000,type:"blob",mode:"100644"},{path:"src/link.ts",sha:"s",size:10,type:"blob",mode:"120000"});
+  files.push({path:"package.json",sha:"p",size:100,type:"blob",mode:"100644"},{path:"src/large.ts",sha:"l",size:200000,type:"blob",mode:"100644"},{path:"src/link.ts",sha:"s",size:10,type:"blob",mode:"120000"});
   const selected=selectFiles(files);assert.equal(selected.length,18);assert.equal(selected[0].path,"package.json");assert.ok(!selected.some(f=>f.path.includes("large")||f.path.includes("link")));
 });
 test("README·포맷만 바뀌면 분석 캐시를 재사용한다",()=>{
@@ -71,6 +71,8 @@ test("수동 수정은 필드별로 보호하고 기존 상세·이미지·기�
   assert.equal(next.description,current.description);assert.equal(next.detail?.overview,current.detail?.overview);assert.deepEqual(next.detail?.troubleshooting,current.detail?.troubleshooting);
   assert.equal(next.title,generated.title);assert.equal(next.github,current.github);assert.equal(next.thumbnail,current.thumbnail);assert.deepEqual(next.detail?.gallery,current.detail?.gallery);assert.equal(next.detail?.contributionNote,current.detail?.contributionNote);
   assert.deepEqual(editedFields(current,{...current,detail:{...current.detail,overview:"수동 수정"}}),["detail.overview"]);
+  const reordered={...current,detail:{...current.detail,troubleshooting:current.detail?.troubleshooting?.map(t=>({result:t.result,solution:t.solution,problem:t.problem,title:t.title}))}};
+  assert.deepEqual(editedFields(current,reordered),[]);
 });
 test("Structured Output은 근거 없는 필드·잘못된 타입을 거부한다",()=>{
   assert.equal(generatedSchema.safeParse({...generated,tech:"React"}).success,false);

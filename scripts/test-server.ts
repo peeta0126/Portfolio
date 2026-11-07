@@ -6,6 +6,7 @@ import { readFile } from "node:fs/promises";
 import postgres from "postgres";
 import { hashPassword } from "../lib/automation/session";
 import { projects } from "../data/projects";
+import { mergeProposal } from "../lib/automation/content";
 
 async function main() {
   const memory=await PGlite.create();
@@ -14,6 +15,7 @@ async function main() {
   const connection=`postgres://postgres:postgres@${server.getServerConn()}/postgres`;
   const sql=postgres(connection,{max:1,prepare:false,onnotice:()=>{}});
   await sql.unsafe(await readFile("db/001_portfolio.sql","utf8"));
+  await sql.unsafe(await readFile("db/002_editorial.sql","utf8"));
   for (const [index,p] of projects.entries()) {
     await sql`insert into projects(slug,content,visibility,display_order,analysis_status) values(${p.slug},${sql.json(p)},'public',${index},'manually_edited')`;
   }
@@ -21,6 +23,11 @@ async function main() {
   const [row]=await sql`insert into projects(slug,github_repo_id,repo_name,content,visibility) values(${pending.slug},999,'mock-project',${sql.json(pending)},'private') returning id`;
   const generated={title:"Mock 새 프로젝트",subtitle:"라우팅 검증 프로젝트",description:"AI가 제안한 설명",projectType:"Web",tech:["TypeScript"],overview:"코드 기반 개요",features:["서버 라우팅"],implementation:["라우팅 처리"],architecture:"Next.js 서버",considerations:[],troubleshooting:[],evidence:[{claim:"라우팅",sources:["app/page.tsx"]}],reviewNotes:[]};
   await sql`insert into project_analysis(project_id,commit_sha,analysis_result,generated_content,analyzed_files) values(${row.id},${"e".repeat(40)},${sql.json(generated)},${sql.json({...pending,title:generated.title})},${sql.json([{path:"app/page.tsx",sha:"blob"}])})`;
+  const sample=JSON.parse(await readFile("docs/drafts/augment-alkkagi.json","utf8"));
+  const [technical]=await sql`insert into portfolio_technical_analysis(project_id,commit_sha,source_hash,pipeline_version,facts,source_packet)
+    values(${row.id},${sample.commit},'isolated-browser-fixture','portfolio-v2',${sql.json(sample.technical)},${sql.json(sample.sourcePacket)}) returning id`;
+  await sql`insert into portfolio_content_drafts(project_id,technical_id,commit_sha,analyzed_files,analysis_result,generated_content,base_content)
+    values(${row.id},${technical.id},${sample.commit},${sql.json(sample.sourcePacket.files.map((f:{path:string;sha:string})=>({path:f.path,sha:f.sha})))},${sql.json(sample.generated)},${sql.json(mergeProposal(pending,sample.generated,[]))},${sql.json(pending)})`;
   await sql`insert into portfolio_public_snapshot(id,content) values(1,${sql.json(projects)})`;
   for(const [kind,status] of [["discover","done"],["analyze","failed"],["analyze","queued"]]) {
     await sql`insert into portfolio_jobs(kind,dedupe_key,payload,status) values(${kind},${`browser-${kind}-${status}`},'{}',${status})`;

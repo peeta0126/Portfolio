@@ -93,6 +93,45 @@ test("작업 큐 초기화 확인·인증·CSRF·보존과 새 수동 예약을 
   expect(reserved.usage).toEqual(before.usage);
 });
 
+test("상세 초안의 반응형 미리보기·항목별 수정·승인·사실 재사용 예약을 검증한다",async({page})=>{
+  await page.goto("/admin");await page.getByLabel("비밀번호",{exact:true}).fill("test-password-for-isolated-browser");await page.getByRole("button",{name:"로그인",exact:true}).click();
+  await expect(page.getByRole("button",{name:"로그아웃"})).toBeVisible();
+  const before=await (await page.request.get("/api/admin")).json();
+  expect(before.contentDrafts[0].status).toBe("pending");
+  await page.getByRole("button",{name:/AI 검토/}).click();
+  await expect(page.getByRole("heading",{name:"승인 후 상세 설명 미리보기"})).toBeVisible();
+  for(const width of [1440,375]) {
+    await page.setViewportSize({width,height:900});
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
+    await page.screenshot({path:`artifacts/editorial-preview-${width}.png`,fullPage:true});
+  }
+  await page.emulateMedia({reducedMotion:"reduce"});await page.evaluate(()=>document.documentElement.classList.add("dark"));
+  await page.screenshot({path:"artifacts/editorial-preview-dark-mobile.png",fullPage:true});
+  await page.getByText("항목별 초안 수정",{exact:true}).click();
+  await page.getByLabel("개발 결과",{exact:true}).fill("관리자가 실제 내용을 확인한 개발 결과");
+  await page.getByRole("button",{name:"초안 수정 저장",exact:true}).click();
+  await expect(page.getByRole("status")).toContainText("저장되었습니다");
+  const edited=await (await page.request.get("/api/admin")).json();
+  expect(edited.projects).toEqual(before.projects);expect(edited.usage).toEqual(before.usage);
+  await page.getByRole("button",{name:"초안 승인 후 게시",exact:true}).click();
+  await expect(page.getByRole("status")).toContainText("저장되었습니다");
+  const approved=await (await page.request.get("/api/admin")).json();
+  const changed=approved.projects.find((p:{id:string})=>p.id===before.contentDrafts[0].project_id);
+  expect(changed.content.description).toBe("관리자가 직접 작성하고 보호한 설명");
+  expect(changed.content.detail.result).toBe("관리자가 실제 내용을 확인한 개발 결과");
+  expect(changed.content.detail.retrospective).not.toContain("확인용 회고 제안");
+  await page.goto(`/projects/${changed.content.slug}`);
+  await expect(page.locator("h1")).toHaveText("증강 알까기");
+  await expect(page.getByText("관리자가 실제 내용을 확인한 개발 결과",{exact:true})).toBeVisible();
+  await expect(page.locator("main")).not.toContainText("[근거:");
+  await page.goto("/admin");await page.getByRole("button",{name:/증강 알까기/}).click();
+  await page.getByRole("button",{name:"설명만 다시 생성",exact:true}).click();
+  await expect(page.getByRole("status")).toContainText("저장되었습니다");
+  const reserved=await (await page.request.get("/api/admin")).json();
+  expect(reserved.jobs.some((j:{kind:string;status:string})=>j.kind==="rewrite"&&j.status==="queued")).toBe(true);
+  expect(reserved.usage).toEqual(before.usage);
+});
+
 test("모바일 관리자 화면과 로그인 시도 제한을 검증한다",async({page,request})=>{
   await page.setViewportSize({width:375,height:812});await page.emulateMedia({reducedMotion:"reduce"});await page.goto("/admin");
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);

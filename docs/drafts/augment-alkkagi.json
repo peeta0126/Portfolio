@@ -1,0 +1,2344 @@
+{
+  "status": "local_draft_not_published",
+  "repository": "https://github.com/peeta0126/AugmentAlkkagi",
+  "commit": "0b2f7cba2c8b3d9ff1418e2f8325ffef2a09963f",
+  "sourceScope": "파일별 인용 발췌와 세 커밋의 실제 diff. 전체 저장소 실행 결과가 아님.",
+  "technical": {
+    "facts": [
+      {
+        "id": "game",
+        "category": "implementation",
+        "statement": "물리 알까기에 로컬·온라인 대전과 증강 선택을 연결한 게임",
+        "evidence": [
+          {
+            "source": "README.md",
+            "quote": "Godot 4.7.2 기반 흑돌·백돌 물리 알까기 게임입니다."
+          }
+        ]
+      },
+      {
+        "id": "augments",
+        "category": "architecture",
+        "statement": "증강 정의 Resource와 동작 Effect를 분리하고 플레이어별 사용·쿨다운을 관리한다",
+        "evidence": [
+          {
+            "source": "docs/AUGMENT_DESIGN.md",
+            "quote": "모든 증강은 `AugmentDefinition` Resource와 개별 `AugmentEffect` 스크립트(`scripts/augments/effects/`)로 분리된다."
+          }
+        ]
+      },
+      {
+        "id": "rounds",
+        "category": "implementation",
+        "statement": "공동 라운드 완료와 양쪽 선택 완료를 구분해 다음 행동으로 넘어간다",
+        "evidence": [
+          {
+            "source": "docs/GAME_DESIGN.md",
+            "quote": "로컬은 같은 선택 단계에서 흑돌과 백돌이 순서대로 고르고, 두 선택이 끝난 뒤에만 다음 라운드를 시작한다."
+          }
+        ]
+      },
+      {
+        "id": "authority",
+        "category": "architecture",
+        "statement": "호스트가 규칙·난수·물리·승패를 확정하고 참가자는 입력을 요청한다",
+        "evidence": [
+          {
+            "source": "docs/NETWORK_ARCHITECTURE.md",
+            "quote": "`HOST`: GD-Sync 방장, 흑돌, 게임 규칙·난수·물리·승패의 권위자"
+          }
+        ]
+      },
+      {
+        "id": "traffic",
+        "category": "architecture",
+        "statement": "변화 기반 빠른 상태와 신뢰성 있는 부가 상태를 분리한다",
+        "evidence": [
+          {
+            "source": "docs/NETWORK_ARCHITECTURE.md",
+            "quote": "느린 상태는 보유 증강의 사용 횟수·재사용 대기·무작위 결과와 임시 벽입니다. 내용이 바뀔 때만 별도의 reliable `receive_world_extras` 메시지로 보냅니다."
+          }
+        ]
+      },
+      {
+        "id": "interactions",
+        "category": "implementation",
+        "statement": "증강 조합 결과가 획득 순서에 종속되지 않도록 효과 순서를 명세했다",
+        "evidence": [
+          {
+            "source": "docs/AUGMENT_DESIGN.md",
+            "quote": "이 순서로 탱크+음속, 삼연발+음속, 타임 프리즈+눈덩이, 합체+탱크, 월마리아+기차, 쿠데타+장기 조합의 결과가 획득 순서에 영향을 받지 않게 한다."
+          }
+        ]
+      },
+      {
+        "id": "effects",
+        "category": "implementation",
+        "statement": "증강의 발사 전·충돌·정지·턴 종료 후크를 관리한다",
+        "evidence": [
+          {
+            "source": "scripts/augments/augment_manager.gd",
+            "quote": "func notify_piece_collision(game: Node, piece: AlkkagiPiece, other: AlkkagiPiece) -> void:"
+          }
+        ]
+      },
+      {
+        "id": "targeting",
+        "category": "implementation",
+        "statement": "참가자의 로컬 타깃 선택 중 호스트의 조준 상태가 도착해도 선택을 유지한다",
+        "evidence": [
+          {
+            "source": "scripts/core/game_manager.gd",
+            "quote": "if state_machine.current == GameStateMachine.State.SKILL_TARGETING and current_player == local_player_id and remote_state == GameStateMachine.State.PLAYER_AIMING:"
+          }
+        ]
+      },
+      {
+        "id": "targeting-test",
+        "category": "test",
+        "statement": "호스트 스냅샷을 적용해도 스킬 대상 선택이 유지되는지 검사하는 테스트가 있다",
+        "evidence": [
+          {
+            "source": "tests/test_client_active_skill.gd",
+            "quote": "targeting survives host aiming snapshot"
+          }
+        ]
+      },
+      {
+        "id": "power-test",
+        "category": "test",
+        "statement": "발사·취소·재시작·참가자 스냅샷 뒤 파워 표시 초기화 회귀 테스트가 있다",
+        "evidence": [
+          {
+            "source": "tests/test_shot_power_reset.gd",
+            "quote": "check(game.hud.power_bar.value == 0.0, label + \" range value is zero\")"
+          }
+        ]
+      },
+      {
+        "id": "pass",
+        "category": "implementation",
+        "statement": "동결로 발사 불가한 차례에는 턴 revision을 검증해 넘기고 오래된 스냅샷을 무시한다",
+        "evidence": [
+          {
+            "source": "scripts/core/game_manager.gd",
+            "quote": "if int(snapshot.get(\"turn_revision\", turn_revision)) < turn_revision:"
+          }
+        ]
+      },
+      {
+        "id": "pass-test",
+        "category": "test",
+        "statement": "중복·과거 턴·지연 응답·미인증 참가자의 넘기기 요청을 검사하는 회귀 테스트가 있다",
+        "evidence": [
+          {
+            "source": "tests/test_stasis_pass_turn.gd",
+            "quote": "late old-turn snapshot cannot undo pass"
+          }
+        ]
+      },
+      {
+        "id": "verified-scope",
+        "category": "result",
+        "statement": "과거 프로토콜 검증 보고서는 같은 PC의 두 프로세스로 확인했으며 분리된 두 PC의 재검증은 남았다",
+        "evidence": [
+          {
+            "source": "docs/TEST_REPORT.md",
+            "quote": "물리적으로 분리된 두 PC 환경의 v4 통합 테스트는 아직 다시 수행하지 않았습니다."
+          }
+        ]
+      },
+      {
+        "id": "limits",
+        "category": "result",
+        "statement": "실제 플레이 밸런스 점검과 배포 방식 결정은 로드맵의 남은 과제다",
+        "evidence": [
+          {
+            "source": "docs/ROADMAP.md",
+            "quote": "2인 이상 실제 플레이 세션을 통한 22종 밸런스와 카드 등급 조정"
+          }
+        ]
+      },
+      {
+        "id": "history-ui",
+        "category": "history",
+        "statement": "UI·온라인 스킬·발사력 초기화를 함께 수정한 실제 변경이 있다",
+        "evidence": [
+          {
+            "source": "989b60c08816f7dacaa370e9e651aa43bf6684d5",
+            "quote": "Fix UI layout, network skills, shot power reset and lobby title"
+          }
+        ]
+      },
+      {
+        "id": "history-target",
+        "category": "history",
+        "statement": "참가자의 스킬 대상 선택과 스냅샷 상태 충돌을 수정하고 회귀 테스트를 추가했다",
+        "evidence": [
+          {
+            "source": "ed2086c42a8977a2fb554fe0c70168838dcb41a2",
+            "quote": "fix: resolve client active skill targeting and network sync issues"
+          }
+        ]
+      },
+      {
+        "id": "history-pass",
+        "category": "history",
+        "statement": "동결 차례 넘기기와 턴 revision 검증을 추가한 실제 변경이 있다",
+        "evidence": [
+          {
+            "source": "0b2f7cba2c8b3d9ff1418e2f8325ffef2a09963f",
+            "quote": "feat: 타임프리즈 턴 넘기기 추가"
+          }
+        ]
+      },
+      {
+        "id": "contribution",
+        "category": "contribution",
+        "statement": "peeta0126 계정의 세 커밋에서 온라인 스킬·UI 상태·턴 넘기기 변경을 확인했다",
+        "evidence": [
+          {
+            "source": "989b60c08816f7dacaa370e9e651aa43bf6684d5",
+            "quote": "author: peeta0126"
+          },
+          {
+            "source": "989b60c08816f7dacaa370e9e651aa43bf6684d5",
+            "quote": "Fix UI layout, network skills, shot power reset and lobby title"
+          },
+          {
+            "source": "0b2f7cba2c8b3d9ff1418e2f8325ffef2a09963f",
+            "quote": "feat: 타임프리즈 턴 넘기기 추가"
+          },
+          {
+            "source": "ed2086c42a8977a2fb554fe0c70168838dcb41a2",
+            "quote": "fix: resolve client active skill targeting and network sync issues"
+          }
+        ]
+      }
+    ],
+    "unknowns": [
+      "개발 시작·종료일과 개인/팀 프로젝트 표기는 관리자 확인 필요. Git 활동 시점을 개발 기간으로 대신하지 않음.",
+      "여러 기여자와 팀 문서는 확인되지만 전체 기능의 개인 기여도와 팀 내 역할은 별도 확인 필요.",
+      "개인 개발 동기와 회고는 확인되지 않음.",
+      "문서의 네트워크 설명은 v4, 최신 코드 PROTOCOL_VERSION은 6. 최신 버전의 실서비스 통합 검증은 확인되지 않음.",
+      "이번 조사에서는 Godot 테스트를 실행하지 않았음. 테스트 코드의 단언과 과거 보고서만 확인함.",
+      "실제 게임 스크린샷은 확인되지 않아 업로드 대기. 저장소 로고·아이콘을 플레이 화면으로 취급하지 않음."
+    ]
+  },
+  "sourcePacket": {
+    "sha": "0b2f7cba2c8b3d9ff1418e2f8325ffef2a09963f",
+    "files": [
+      {
+        "path": "README.md",
+        "sha": "f2a68f1dc616eb84cb57b0e5fcbba5b53166669f",
+        "content": "# 증강 알까기 (Augment Alkkagi)\n\nGodot 4.7.2 기반 흑돌·백돌 물리 알까기 게임입니다. 한 PC에서 하는 로컬 2인 대전과 GD-Sync 기반 1:1 온라인 대전, 22종 증강을 지원합니다.\n\n> 누가 무엇을 하는지는 이슈의 **📋 현황판**, 새로 바뀐 기능은 **🆕 변경 기록**에서 봅니다. 쓰는 법은 [팀 작업 안내](docs/TEAM_GUIDE.md).\n\n## 실행\n\nGodot 4.7.2에서 `project.godot`를 열고 F5를 누릅니다.\n\n- `로컬 대전 시작`: 한 PC에서 흑돌과 백돌을 번갈아 플레이\n- `온라인 방 만들기`: GD-Sync 방을 만들고 6자리 방 코드를 표시\n- `온라인 방 코드 참가`: 전달받은 6자리 코드로 참가\n\n```powershell\n& 'C:\\Godot\\Godot_v4.7.2-stable_win64.exe' --path .\n```\n\n온라인 대전 방법은 [온라인 멀티플레이 안내](docs/ONLINE_MULTIPLAYER_GUIDE.md)를 참고하세요.\n\n## 주요 기능\n\n- 중력 0의 `RigidBody2D` 알까기 물리, CCD, 감속·정지·충돌 판정\n- 504×540px(14:15) 보드, 19×19 격자, 화점 9개\n- 3/4/5개 시작 설정과 자유 배치\n- 시작 및 공동 3·6라운드 증강 선택, 플레이어별 최대 3개 제한\n- 22종 증강과 Ver.3 개편 기능\n- 증강 선택 후 턴 유지, 새로고침 모드, 혼돈 모드\n- GD-Sync 로비, 준비, 6자리 방 코드, 호스트 권위 입력 검증, 변화 기반 스냅샷과 보간\n- Windows Desktop x86_64 내보내기 프리셋\n\n## 자동 테스트\n\n개별 테스트는 다음처럼 실행합니다.\n\n```powershell\n& 'C:\\Godot\\Godot_v4.7.2-stable_win64_console.exe' --headless --path . --script tests/test_phase1.gd\n& 'C:\\Godot\\Godot_v4.7.2-stable_win64_console.exe' --headless --path . --script tests/test_game_scene.gd\n& 'C:\\Godot\\Godot_v4.7.2-stable_win64_console.exe' --headless --path . --script tests/test_board_geometry.gd\n& 'C:\\Godot\\Godot_v4.7.2-stable_win64_console.exe' --headless --path . --script tests/test_augments.gd\n& 'C:\\Godot\\Godot_v4.7.2-stable_win64_console.exe' --headless --path . --script tests/test_all_augments.gd\n& 'C:\\Godot\\Godot_v4.7.2-stable_win64_console.exe' --headless --path . --script tests/test_setup_modes.gd\n& 'C:\\Godot\\Godot_v4.7.2-stable_win64_console.exe' --headless --path . --script tests/test_snapshot_throttle.gd\n& 'C:\\Godot\\Godot_v4.7.2-stable_win64_console.exe' --headless --path . --script tests/test_network_disconnect.gd\n& 'C:\\Godot\\Godot_v4.7.2-stable_win64_console.exe' --headless --path . --script tests/test_guest_rng_isolation.gd\n```\n\n온라인 동기화 구조와 프로토콜 변경 사항은 [네트워크 구조](docs/NETWORK_ARCHITECTURE.md)를 참고하세요.\n\n## Windows 빌드\n\nGodot 4.7.2 Export Templates를 설치한 뒤 `Project > Export > Windows Desktop`에서 내보냅니다. 기본 경로는 `build/AugmentAlkkagi.exe`이며 PCK가 실행 파일에 포함됩니다.\n\n"
+      },
+      {
+        "path": "project.godot",
+        "sha": "76e54b40f5eb6573ed18738dde338e2b444de60c",
+        "content": "; Engine configuration file.\n; It's best edited using the editor UI and not directly,\n; since the parameters that go here are not all obvious.\n;\n; Format:\n;   [section] ; section goes between []\n;   param=value ; assign values to parameters\n\nconfig_version=5\n\n[GD-Sync]\n\nprotectedMode=true\nversion=\"1.0.2\"\n\n[application]\n\nconfig/name=\"AugmentAlkkagi\"\nrun/main_scene=\"res://scenes/main.tscn\"\nconfig/features=PackedStringArray(\"4.7\", \"GL Compatibility\")\nconfig/icon=\"res://icon.svg\"\n\n[autoload]\n\nGDSync=\"*uid://cgo4kiocg4a4a\"\n\n[display]\n\nwindow/size/viewport_width=1280\nwindow/size/viewport_height=720\nwindow/size/window_width_override=1280\nwindow/size/window_height_override=720\nwindow/stretch/mode=\"canvas_items\"\nwindow/stretch/aspect=\"expand\"\n\n[editor_plugins]\n\nenabled=PackedStringArray(\"res://addons/GD-Sync/plugin.cfg\")\n\n[physics]\n\n3d/physics_engine=\"Jolt Physics\"\n2d/default_gravity=0.0\n\n[rendering]\n\nrendering_device/driver.windows=\"d3d12\"\nrenderer/rendering_method=\"gl_compatibility\"\nrenderer/rendering_method.mobile=\"gl_compatibility\"\n\n"
+      },
+      {
+        "path": "docs/GAME_DESIGN.md",
+        "sha": "85aa204d724d138333129af72c24b0abc1fa8f4a",
+        "content": "# 게임 및 증강 상태 흐름\n\n## 매치 흐름\n\n`MAIN_MENU → LOCAL_SETUP → INITIAL_AUGMENT_SELECTION(흑돌) → INITIAL_AUGMENT_SELECTION(백돌) → PLAYER_AIMING`\n\n일반 발사는 `PIECES_MOVING → TURN_RESOLUTION`을 거친다. 액티브는 `PLAYER_AIMING → SKILL_TARGETING → PIECES_MOVING → TURN_RESOLUTION`이며 우클릭으로 선택을 취소할 수 있다. 즉시형 필드 스킬은 `SKILL_TARGETING` 없이 물리 해소로 이동한다.\n\n## 공동 라운드와 증강\n\n- 흑돌과 백돌이 각각 정상 행동을 한 번 완료해야 공동 라운드가 1 증가한다.\n- 행동 완료는 물리 정지, 탈락 및 승리 판정 뒤 호스트가 한 번만 확정한다. 승리한 경우 보상 선택을 열지 않는다.\n- 게임 시작 전 첫 증강, 3라운드 완료 후 두 번째 증강, 6라운드 완료 후 세 번째 증강을 얻는다.\n- 플레이어당 최대 보유량은 3개이며, 9라운드 이후에는 추가 선택이 없다.\n- 로컬은 같은 선택 단계에서 흑돌과 백돌이 순서대로 고르고, 두 선택이 끝난 뒤에만 다음 라운드를 시작한다.\n- 온라인은 양쪽 PC에 서로 독립적인 카드 3장을 동시에 표시한다. 먼저 고른 쪽은 상대 선택 완료를 기다린다.\n\n## 조준 취소\n\n조준 중 `Esc` 또는 마우스 오른쪽 버튼을 누르면 선택, 조준선과 파워 게이지를 즉시 초기화한다. 그 뒤 왼쪽 버튼을 놓아도 발사 요청을 만들지 않으며 턴과 라운드는 유지된다. 드래그가 8px 미만인 경우도 오발로 간주해 같은 방식으로 취소한다. 증강 선택이나 메뉴 화면에서는 이 조준 취소 처리를 실행하지 않는다.\n\n## 액티브 규칙\n\n- 현재 플레이어가 소유하고 쿨다운·사용 횟수 조건을 만족하는 버튼만 활성화한다.\n- 자기 돌, 상대 돌, 자기 돌 2개, 보드 위치 선택을 구분한다.\n- 다단계 선택을 취소하면 임시 첫 대상도 초기화한다.\n- 스킬은 기본적으로 발사 한 번과 같은 턴을 소비한다.\n- 넉백이나 견인이 있으면 모든 돌이 멈춘 뒤 턴을 넘긴다.\n\n## 물리 기본값\n\n보드는 504×540px, 흑돌/백돌 반지름은 13.32/13.14px이다. 기본 최대 드래그는 120px, 드래그 1px당 충격량은 9.36, 최대 충격량은 1,123.2다. 반발 0.48, 마찰 0.24, 선형 감속 2.68, 기본 속도 상한 1,250px/s, 정지 기준 4px/s를 사용한다. 프로젝트와 돌의 중력은 모두 0이다.\n\n발사력은 `min(드래그 거리 × 9.36, 최대 충격량 × 사거리 배율) × 음속 배율`로 계산한다. 조준경은 사거리와 최대 충격량을 1.3배, 음속 폭발은 최종 충격량과 속도 상한을 1.6배로 만든다. 두 증강 조합은 기본 대비 2.08배이며 적용 순서와 무관하다.\n\n월마리아 벽은 150×20px `StaticBody2D`와 같은 크기의 `RectangleShape2D`를 사용한다. 돌은 벽 레이어를 충돌 마스크에 포함하고 항상 CCD를 사용한다. 벽 반발력 0.88과 마찰 0.05는 설정 상수이며, 설치 전에 회전된 사각형과 모든 돌 사이의 실제 거리를 검사한다.\n\n"
+      },
+      {
+        "path": "docs/AUGMENT_DESIGN.md",
+        "sha": "7b84e46e44d831dfe84712c982d7039adc83c1ef",
+        "content": "# 증강 22종 구현 명세\n\n모든 증강은 `AugmentDefinition` Resource와 개별 `AugmentEffect` 스크립트(`scripts/augments/effects/`)로 분리된다. 동일 증강은 중복 획득할 수 없고, 플레이어별 소유·사용 횟수·쿨다운은 독립적이다. 플레이어당 최대 3개(`GameplayRules.MAX_AUGMENTS_PER_PLAYER`)만 보유하며 시작 전과 공동 3라운드마다 획득한다. 혼돈 모드에서는 한 번에 2개를 고른다. 카드 풀 생성과 최종 획득 양쪽에서 이 제한을 검증한다.\n\n규칙은 호스트가 정한다. 참가자의 스킬 사용은 호스트가 검증한 뒤 결과 스냅샷으로 돌아온다(`docs/NETWORK_ARCHITECTURE.md`).\n\n| 증강 | 유형 / 등급 | 대상 | 사용 횟수·쿨다운 | 효과 | 턴 소비 | 알려진 제한 |\n|---|---|---|---|---|---|---|\n| 실명 | 액티브 / 희귀 | 대상 없음 | 2회 · 쿨다운 3턴 | 상대의 실제 차례 2회 동안 자기 돌 주변만 보이게 하고, 시야 안에 들어온 상대 돌은 보인다. 암막 세기 설정 없음 | 예 | 시야 밖은 불투명 암막 |\n| 눈보라 | 패시브 / 희귀 | 대상 없음 | 제한 없음 | 획득 즉시 3사이클 동안 전체 보드가 더 미끄러워지고 보드 색이 눈 덮인 색으로 바뀐다 | 아니오 | 전체 보드 단일 강도 |\n| 피의 축제 | 조건부 / 영웅 | 대상 없음 | 제한 없음 | 내 발사로 상대 돌을 탈락시키면 한 번만 추가 발사 기회를 얻는다 | 예 | 돌을 격자에 자동 스냅하지 않음 |\n| 쿠데타 | 액티브 / 전설 | 대상 없음 | 1회 | 보드 위 모든 흑돌과 백돌의 실제 소유권을 교환한다 | 예 | 장착·변신은 돌에 남고, 능력 발동은 안 됨 |\n| 느려 | 조건부 / 영웅 | 대상 없음 | 제한 없음 | 상대 발사 경로의 아군 돌이 40% 확률로 옆으로 회피한다 | 예 | 복잡한 다중 반사 예측은 없음 |\n| 지진 | 필드 / 전설 | 대상 없음 | 1회 | 돌과 겹치지 않는 균열을 만든다(2사이클). 균열에 진입한 무적이 아닌 돌은 탈락한다 | 아니오 | 랜덤 균열 생성 및 접근 시 탈락 |\n| 중력장 | 발사 / 영웅 | 보드 위치 | 1회 | 선택한 위치에 중력장을 설치한다. 다음 유효 발사 때 반경 200px의 양 진영 돌을 끌어당기고 사라진다 | 아니오 | 선택 지역 이펙트 표시 후 능력 발동 |\n| 기사 | 액티브 / 영웅 | 아군 돌 1개 | 기사 지정 1회 | 아군 돌 하나를 기사로 변신시킨다. 기사를 직접 발사하고 이동이 끝나면 주변 60px의 상대 돌을 밀어낸다 | 예 | 60px 주변에 돌이 없으면 발동 안 됨 |\n| 장기 | 액티브 / 희귀 | 아군 돌 1개 | 2회 · 쿨다운 2턴 | 아군 돌 하나를 외형과 크기가 다른 무작위 장기말로 변신시킨다 | 예 | — |\n| 나는 왕이로소이다 | 조건부 / 영웅 | 대상 없음 | 변신 1회 | 돌이 상대 진영에 도착하면 거대한 왕으로 변신하고, 첫 적 충돌에 충격파를 낸다 | 예 | — |\n| 합체 | 액티브 / 일반 | 아군 돌 1개 | 1회 · 쿨다운 2턴 | 선택한 아군 돌을 중심으로 살아 있는 모든 아군 돌을 하나의 초거대 돌로 합친다 | 예 | 수동 분리 없음 |\n| 조준경 | 패시브 / 일반 | 대상 없음 | 제한 없음 | 최대 발사 충격량 1.3배, 조준 가이드 1.5배 | 예 | — |\n| 눈덩이 | 액티브 / 일반 | 보드 위치 | 쿨다운 2턴 | 눈덩이를 조준해 발사한다. 적중한 상대 돌은 다음 자기 턴 동안 얼어붙는다 | 아니오 | 대상 선택형 투사체, 자유 조준 아님 |\n| 음속 폭발 | 발사 / 영웅 | 대상 없음 | 제한 없음 | 발사 충격량 1.6배, 고속 잔상 | 예 | — |\n| 타임 프리즈 | 액티브 / 희귀 | 아군 모든 돌 | 1회 | 모든 아군 돌에 이동 불가·무적을 적용한다 | 예 | 동결 중 충돌체는 정적 장애물 |\n| 은신 | 액티브 / 희귀 | 아군 돌 1개 | 1회 | 아군 돌 하나를 2사이클 동안 상대 화면에서 숨긴다. 충돌은 유지 | 예 | — |\n| 탱크 | 액티브 / 희귀 | 아군 돌 1개 | 2회 · 쿨다운 2턴 | 아군 돌 하나를 크기 1.25배, 질량 1.8배로 강화한다 | 예 | — |\n| 칙칙폭폭 | 패시브 / 전설 | 대상 없음 | 제한 없음 | 무작위 보드 횡단 경로를 1.5초 먼저 예고한 뒤, 그 경로의 모든 돌을 강하게 밀어낸다 | 아니오 | — |\n| 삼연발!! | 액티브 / 영웅 | 대상 없음 | 1회 | 다음 발사에서 돌이 작은 돌 3개로 분열해 ±12° 부채꼴로 날아간다. 조각별 속도는 입력의 70% | 아니오 | 분열체는 다시 분열하지 않음 |\n| 월마리아 | 필드 / 영웅 | 보드 위치 | 2회 · 쿨다운 3턴 | R로 가로·세로를 고른 뒤 선택한 위치에 3턴 동안 반사 벽을 설치한다 | 아니오 | 가로/세로 방향은 호스트가 결정 |\n| 소원 | 필드 / 전설 | 대상 없음 | 1회 | 보드에 드래곤볼 7개를 배치한다. 내 돌로 모두 수집하면 즉시 승리 | 아니오 | — |\n| 마법사 | 액티브 / 영웅 | 아군 돌 1개 | 마법사 지정 1회 · 쿨다운 2턴 | 아군 돌 하나를 마법사로 지정한다. 상대에게 화염구 넉백을 가하며 다른 돌로 재지정할 수 없다 | 예 | 대상 선택형 화염구 |\n\n현황의 원본은 팀 워크시트(증강알까기 › 증강현황)이며, 수치는 `resources/augments/*.tres`가 기준이다.\n\n## 효과 처리 순서\n\n1. 조준경 최대 드래그와 음속 폭발 충격량을 기본값에 곱셈\n2. 발사 직전 시각/속도 설정\n3. 상대의 느려 예측 회피\n4. 삼연발 발사 변환\n5. 권위 물리 시뮬레이션\n6. 임시 상태, 눈보라, 실명, 벽·균열·중력장 지속 시간 감소와 복원\n7. 일반 전멸 승리 또는 특수 승리(소원)\n\n이 순서로 탱크+음속, 삼연발+음속, 타임 프리즈+눈덩이, 합체+탱크, 월마리아+기차, 쿠데타+장기 조합의 결과가 획득 순서에 영향을 받지 않게 한다.\n\n"
+      },
+      {
+        "path": "docs/NETWORK_ARCHITECTURE.md",
+        "sha": "3da8aa573cf92b70f3869481c864c146d0d1ac9a",
+        "content": "# GD-Sync 네트워크 구조\n\n온라인 대전은 GD-Sync만 사용합니다. LAN 호스트, IP 직접 참가, Tailscale, `ENetMultiplayerPeer`, Godot RPC는 사용하지 않습니다.\n\n## 역할과 권한\n\n- `OFFLINE`: 로컬 게임 또는 온라인 방에 들어가기 전 상태\n- `HOST`: GD-Sync 방장, 흑돌, 게임 규칙·난수·물리·승패의 권위자\n- `CLIENT`: GD-Sync 참가자, 백돌, 입력을 방장에게 요청하고 결과를 적용\n\n방은 `AA-` 접두사와 6자리 숫자 코드로 식별하며 최대 2명입니다. 참가자의 준비, 배치, 발사, 증강 선택과 액티브 스킬 입력은 방장이 순서 번호와 게임 상태를 검증합니다.\n\n## 프로토콜 v4\n\nv4는 큰 전체 상태를 매 프레임 보내지 않도록 전송을 두 종류로 나눕니다.\n\n1. 빠른 상태는 돌 위치·속도, 턴, 라운드, 승패와 같은 물리·게임 진행 값입니다. 최대 20Hz로 unreliable 전송하며, 변화 직후 두 번 제한 재전송합니다. 변화가 없으면 쉬고 1초마다 heartbeat를 보냅니다.\n2. 느린 상태는 보유 증강의 사용 횟수·재사용 대기·무작위 결과와 임시 벽입니다. 내용이 바뀔 때만 별도의 reliable `receive_world_extras` 메시지로 보냅니다.\n\nheartbeat는 이동하지 않는 돌과 중요한 진행 상태가 장시간 갱신되지 않는 문제를 막습니다. 긴 유휴 뒤 받은 스냅샷은 유휴 시간을 보간 시간으로 사용하지 않습니다. 새 게임, 로비 복귀, 참가자 종료, 방 종료 때는 캐시를 초기화해 첫 전송이 항상 전체 최신 상태를 포함하게 합니다.\n\n로비 데이터의 `protocol` 값이 현재 버전과 다르면 게임 준비 전에 방을 나가고 오류를 표시합니다.\n\n## 전송량 확인\n\n`AlkkagiNetworkManager.get_snapshot_metrics()`는 현재 경기에서 보낸 빠른 상태와 부가 상태의 횟수, 직렬화 바이트 합계, 최대 크기를 반환합니다.\n\n- `fast_count`, `fast_bytes`, `fast_max_bytes`\n- `extras_count`, `extras_bytes`, `extras_max_bytes`\n\n이 값은 게임 payload의 `var_to_bytes` 크기이며 암호화·압축·GD-Sync envelope를 포함한 실제 회선 크기는 아닙니다. 실제 회선 크기는 GD-Sync profiler로 확인합니다. ENet MTU를 GD-Sync 한도로 간주하지 않습니다.\n\n## 종료와 재접속\n\n방장 또는 참가자가 나가면 준비 상태, 증강 선택 단계, 후보, 새로고침 사용 여부, 자유 배치 완료 상태, 모드 설정, 방 코드, 상대 ID와 스냅샷 캐시를 초기화합니다. 참가자는 메인 메뉴로 돌아가며 같은 프로세스에서 새 방을 만들거나 참가할 수 있습니다.\n\n## 회귀 테스트\n\n- `tests/test_snapshot_throttle.gd`\n- `tests/test_augment_network_sync.gd`\n- `tests/test_network_disconnect.gd`\n- `tests/test_guest_rng_isolation.gd`\n- `tests/test_setup_modes.gd`\n\n실제 서비스 검증은 `tests/gdsync_lobby_driver.gd`로 두 프로세스를 실행해 방 생성·참가·준비·배치·선택·발사·승패를 확인합니다.\n\n"
+      },
+      {
+        "path": "docs/TEST_REPORT.md",
+        "sha": "256a9dffa17edb756d30171bb991e90d7e95550f",
+        "content": "# 테스트 보고서\n\n최종 검증일: 2026-10-28\n\n## 자동 회귀 테스트\n\nGodot 4.7.2 headless 환경에서 다음 테스트가 모두 종료 코드 0과 PASS를 반환했습니다.\n\n- `test_phase1.gd`: 기본 규칙과 턴 진행\n- `test_game_scene.gd`: 씬 로드, 발사, 이동, 승리\n- `test_augments.gd`, `test_all_augments.gd`, `test_new_augments_v2.gd`: 기존 증강과 개편 증강\n- `test_setup_modes.gd`: 자유 배치, 새로고침·혼돈 모드 조합, 증강 선택 후 턴 유지\n- `test_augment_network_sync.gd`: 증강 상태 스냅샷 동기화\n- `test_network_interpolation.gd`: 참가자 스냅샷 보간\n- `test_network_shot_clamp.gd`: 호스트 발사력 검증\n- `test_client_active_skill.gd`: 참가자 액티브 스킬 입력\n- `test_snapshot_throttle.gd`: 변화 기반 전송, heartbeat, reliable 부가 상태 분리\n- `test_network_disconnect.gd`: 방장·참가자 종료 뒤 세션 전체 초기화\n- `test_guest_rng_isolation.gd`: 호스트 권위 난수 결과 동기화\n\n## GD-Sync 통합 테스트\n\n실제 GD-Sync 서비스에 호스트와 참가자 Godot 프로세스를 연결해 다음 흐름을 확인했습니다.\n\n- 6자리 코드 방 생성과 참가\n- 2인 제한과 양쪽 준비 상태 동기화\n- 게임 시작과 양쪽 자유 배치 완료\n- 양쪽 증강 제안·선택·확정\n- 호스트 발사와 참가자 발사 요청 검증\n- 턴 변경, 스냅샷 반영, 호스트 승리 판정과 게임 오버 동기화\n\n프로토콜 v4는 같은 PC의 독립된 호스트·참가자 프로세스로 다시 검증해 양쪽 PASS를 확인했습니다. 물리적으로 분리된 두 PC 환경의 v4 통합 테스트는 아직 다시 수행하지 않았습니다.\n\n## 환경 경고\n\n샌드박스 내부 실행에서는 Godot 사용자 로그 경로와 Windows 루트 인증서 저장소 접근이 제한됩니다. 온라인 통합 테스트는 해당 제한이 없는 환경에서 별도로 실행했습니다. GD-Sync 디버그 로거의 활성 디버거 부재 메시지와 일부 리소스 UID 대체 경고는 기존 경고이며 테스트 결과에는 영향을 주지 않았습니다.\n\n"
+      },
+      {
+        "path": "docs/ROADMAP.md",
+        "sha": "b9bfe02821b8cec34c92c746c561a3c3e019e97b",
+        "content": "# 로드맵\n\n## 완료\n\n- 로컬 2인 알까기와 실제 비율 흑돌·백돌\n- 22종 증강 Resource/Effect 등록 및 실제 상태 변화(피의 축제·지진·중력장·은신·소원 추가, 합체·기사로 이름 정리)\n- 액티브 버튼, 다단계 대상 선택, 취소, 사용 횟수와 쿨다운\n- 변신, 발사 변환, 투사체 연출, 필드, 벽, 특수 승리\n- 1:1 온라인 대전(GD-Sync): 호스트가 규칙을 정하고 참가자는 스냅샷을 보간해 보여 줌, 스킬 요청 검증·결과 동기화, 호스트 RNG\n- 칙칙폭폭 1.5초 선행 예고, 실명 내 돌 주변 시야, 삼연발 조각 속도 보정, 시작 선공 동전 던지기\n- 잉크 스타일 UI·증강 아이콘·연출 전면 리디자인\n- 주요 증강 조합과 재시작 초기화 자동 테스트\n\n## 다음 우선순위\n\n1. 2인 이상 실제 플레이 세션을 통한 22종 밸런스와 카드 등급 조정\n2. 온라인 2인 점검(방 만들기·참가·끊김 후 복귀, 증강 사용이 양쪽에 똑같이 보이는지)\n3. 눈덩이·화염구를 자유 조준 ballistic projectile로 확장\n4. 충돌 순간 파티클·사운드·화면 피드백\n5. 느려의 다중 반사 예측, 피의 축제 격자 스냅 판정 보완\n6. 다른 사람도 받아서 온라인으로 할 수 있는 배포 방법 정하기\n\n"
+      },
+      {
+        "path": "scripts/augments/augment_manager.gd",
+        "sha": "696ff66956203201d278804701b823488d44f4d2",
+        "content": "class_name AugmentManager\nextends Node\n\nsignal augment_acquired(player_id: int, definition: AugmentDefinition)\n\nconst CATALOG: Array[AugmentDefinition] = [\n\tpreload(\"res://resources/augments/triple_shot.tres\"),\n\tpreload(\"res://resources/augments/stasis.tres\"),\n\tpreload(\"res://resources/augments/dodge.tres\"),\n\tpreload(\"res://resources/augments/janggi.tres\"),\n\tpreload(\"res://resources/augments/piggyback.tres\"),\n\tpreload(\"res://resources/augments/snowball.tres\"),\n\tpreload(\"res://resources/augments/wizard.tres\"),\n\tpreload(\"res://resources/augments/tank.tres\"),\n\tpreload(\"res://resources/augments/coup.tres\"),\n\tpreload(\"res://resources/augments/king.tres\"),\n\tpreload(\"res://resources/augments/greatsword.tres\"),\n\tpreload(\"res://resources/augments/sonic_boom.tres\"),\n\tpreload(\"res://resources/augments/train.tres\"),\n\tpreload(\"res://resources/augments/blizzard.tres\"),\n\tpreload(\"res://resources/augments/blind.tres\"),\n\tpreload(\"res://resources/augments/wall_maria.tres\"),\n\tpreload(\"res://resources/augments/scope.tres\"),\n\tpreload(\"res://resources/augments/blood_festival.tres\"),\n\tpreload(\"res://resources/augments/gravity_field.tres\"),\n\tpreload(\"res://resources/augments/stealth.tres\"),\n\tpreload(\"res://resources/augments/earthquake.tres\"),\n\tpreload(\"res://resources/augments/wish.tres\"),\n]\n\nvar owned: Dictionary = {1: [], 2: []}\nvar effects: Dictionary = {1: [], 2: []}\nvar completed_turns: Dictionary = {1: 0, 2: 0}\nvar rng := RandomNumberGenerator.new()\n\nfunc _ready() -> void:\n\trng.randomize()\n\nfunc reset_match() -> void:\n\towned = {1: [], 2: []}\n\teffects = {1: [], 2: []}\n\tcompleted_turns = {1: 0, 2: 0}\n\nfunc get_choices(player_id: int, count: int = 3) -> Array[AugmentDefinition]:\n\tvar pool: Array[AugmentDefinition] = []\n\tif owned[player_id].size() >= GameplayRules.MAX_AUGMENTS_PER_PLAYER:\n\t\treturn pool\n\tfor definition in CATALOG:\n\t\tif definition.enabled and not has_augment(player_id, definition.id):\n\t\t\tpool.append(definition)\n\t# Fisher-Yates: 향후 호스트 RNG 결과만 동기화할 수 있는 단일 지점이다.\n\tfor index in range(pool.size() - 1, 0, -1):\n\t\tvar swap_index := rng.randi_range(0, index)\n\t\tvar temporary := pool[index]\n\t\tpool[index] = pool[swap_index]\n\t\tpool[swap_index] = temporary\n\treturn pool.slice(0, mini(count, pool.size()))\n\nfunc acquire(game: Node, player_id: int, augment_id: StringName) -> bool:\n\tif player_id not in owned or owned[player_id].size() >= GameplayRules.MAX_AUGMENTS_PER_PLAYER or has_augment(player_id, augment_id):\n\t\treturn false\n\tvar definition := get_definition(augment_id)\n\tif definition == null or not definition.enabled or definition.effect_script == null:\n\t\treturn false\n\tvar effect := definition.effect_script.new() as AugmentEffect\n\teffect.setup(definition)\n\teffect.owner_id = player_id\n\towned[player_id].append(definition)\n\teffects[player_id].append(effect)\n\teffect.on_acquired(game, player_id)\n\taugment_acquired.emit(player_id, definition)\n\treturn true\n\nfunc apply_owned_to_piece(player_id: int, piece: AlkkagiPiece) -> void:\n\tfor effect: AugmentEffect in effects[player_id]:\n\t\teffect.apply_to_piece(piece)\n\nfunc shot_profile(player_id: int) -> Dictionary:\n\tvar impulse := 1.0\n\tvar max_drag := 1.0\n\tvar guide := 1.0\n\tfor effect: AugmentEffect in effects[player_id]:\n\t\timpulse *= effect.impulse_multiplier()\n\t\tmax_drag *= effect.max_drag_multiplier()\n\t\tguide *= effect.guide_multiplier()\n\treturn {\"impulse_multiplier\": impulse, \"max_drag_multiplier\": max_drag, \"guide_multiplier\": guide, \"speed_multiplier\": impulse * max_drag}\n\nfunc before_shot(player_id: int, piece: AlkkagiPiece) -> void:\n\tfor effect: AugmentEffect in effects[player_id]:\n\t\teffect.before_shot(piece)\n\nfunc transform_shot(game: Node, player_id: int, piece: AlkkagiPiece, impulse: Vector2) -> bool:\n\tfor effect: AugmentEffect in effects[player_id]:\n\t\tif effect.transform_shot(game, player_id, piece, impulse):\n\t\t\treturn true\n\treturn false\n\nfunc notify_opponent_shot(game: Node, shooter_id: int, piece: AlkkagiPiece, impulse: Vector2) -> void:\n\tvar opponent := 2 if shooter_id == 1 else 1\n\tfor effect: AugmentEffect in effects[opponent]:\n\t\teffect.on_opponent_shot(game, opponent, piece, impulse)\n\nfunc notify_piece_collision(game: Node, piece: AlkkagiPiece, other: AlkkagiPiece) -> void:\n\tfor effect: AugmentEffect in effects[piece.owner_id]:\n\t\teffect.on_piece_collision(game, piece.owner_id, piece, other)\n\nfunc after_shot(game: Node, player_id: int, piece: AlkkagiPiece) -> void:\n\tfor effect: AugmentEffect in effects[player_id]:\n\t\teffect.after_shot(game, player_id, piece)\n\nfunc grants_bonus_turn(game: Node, player_id: int, opponent_eliminated: int) -> bool:\n\tfor effect: AugmentEffect in effects[player_id]:\n\t\tif effect.grants_bonus_turn(game, player_id, opponent_eliminated):\n\t\t\treturn true\n\treturn false\n\nfunc active_effects(player_id: int) -> Array[AugmentEffect]:\n\tvar result: Array[AugmentEffect] = []\n\tfor effect: AugmentEffect in effects[player_id]:\n\t\tif effect.is_active():\n\t\t\tresult.append(effect)\n\treturn result\n\nfunc check_special_victory(game: Node) -> int:\n\tfor player_id in [1, 2]:\n\t\tfor effect: AugmentEffect in effects[player_id]:\n\t\t\tif effect.check_special_victory(game, player_id):\n\t\t\t\treturn player_id\n\treturn 0\n\nfunc physics_tick(game: Node, delta: float) -> void:\n\tfor player_id in [1, 2]:\n\t\tfor effect: AugmentEffect in effects[player_id]:\n\t\t\teffect.on_physics_tick(game, player_id, delta)\n\nfunc has_pending_action() -> bool:\n\tfor player_id in [1, 2]:\n\t\tfor effect: AugmentEffect in effects[player_id]:\n\t\t\tif effect.blocks_turn_resolution():\n\t\t\t\treturn true\n\treturn false\n\nfunc notify_pieces_settled(game: Node) -> bool:\n\tvar applied := false\n\tfor player_id in [1, 2]:\n\t\tfor effect: AugmentEffect in effects[player_id]:\n\t\t\tif effect.on_pieces_settled(game, player_id):\n\t\t\t\tapplied = true\n\treturn applied\n\nfunc finish_turn(game: Node, player_id: int) -> void:\n\tcompleted_turns[player_id] += 1\n\tfor effect: AugmentEffect in effects[player_id]:\n\t\teffect.on_turn_ended(game, player_id)\n\nfunc finish_global_turn(game: Node, completed_player: int) -> void:\n\tfor player_id in [1, 2]:\n\t\tfor effect: AugmentEffect in effects[player_id]:\n\t\t\teffect.on_global_turn_ended(game, completed_player)\n\nfunc start_player_turn(game: Node, player_id: int) -> void:\n\tfor effect: AugmentEffect in effects[player_id]:\n\t\teffect.on_owner_cycle(game)\n\tfor piece: AlkkagiPiece in game.get_pieces():\n\t\tif piece.owner_id == player_id:\n\t\t\tpiece.tick_stealth(2 if player_id == 1 else 1)\n\tgame.update_piece_visibility()\n\nfunc passive_hud_effects(player_id: int) -> Array[AugmentEffect]:\n\tvar result: Array[AugmentEffect] = []\n\tfor effect: AugmentEffect in effects[player_id]:\n\t\tif effect.show_in_passive_hud():\n\t\t\tresult.append(effect)\n\treturn result\n\nfunc can_acquire(player_id: int) -> bool:\n\treturn player_id in owned and owned[player_id].size() < GameplayRules.MAX_AUGMENTS_PER_PLAYER\n\nfunc has_augment(player_id: int, augment_id: StringName) -> bool:\n\tfor definition: AugmentDefinition in owned[player_id]:\n\t\tif definition.id == augment_id:\n\t\t\treturn true\n\treturn false\n\nfunc get_definition(augment_id: StringName) -> AugmentDefinition:\n\tfor definition in CATALOG:\n\t\tif definition.id == augment_id:\n\t\t\treturn definition\n\treturn null\n\n"
+      },
+      {
+        "path": "scripts/core/game_manager.gd",
+        "sha": "6471614f0aea0596f21b94a671862c9741a5a907",
+        "content": "if state_machine.current == GameStateMachine.State.SKILL_TARGETING and current_player == local_player_id and remote_state == GameStateMachine.State.PLAYER_AIMING:\nif int(snapshot.get(\"turn_revision\", turn_revision)) < turn_revision:"
+      },
+      {
+        "path": "scripts/network/network_manager.gd",
+        "sha": "19dc10b278c595b886b45b20d0a0d6c22c3efbda",
+        "content": ""
+      },
+      {
+        "path": "tests/test_shot_power_reset.gd",
+        "sha": "8e03110ae2d213300cfadaf8d24f2f6322084e67",
+        "content": "extends SceneTree\n\nvar failures := 0\nfunc _init() -> void:\n\tcall_deferred(\"run_test\")\nfunc check(ok: bool, message: String) -> void:\n\tif not ok:\n\t\tfailures += 1\n\t\tpush_error(\"FAIL: \" + message)\nfunc check_zero(game: Node, label: String) -> void:\n\tcheck(game.hud.power_bar.value == 0.0, label + \" range value is zero\")\n\tcheck(game.hud._power_number.text == \"0%\", label + \" percentage is zero\")\n\tcheck(not game.hud._power_fill_panel.visible, label + \" fill is empty\")\nfunc aim(game: Node, fraction: float) -> Vector2:\n\tvar piece: AlkkagiPiece\n\tfor candidate in game.get_pieces():\n\t\tif candidate.owner_id == game.current_player:\n\t\t\tpiece = candidate\n\t\t\tbreak\n\tgame._on_piece_pressed(piece)\n\tvar profile: Dictionary = game._current_shot_profile()\n\tvar pointer := piece.global_position - Vector2(GameplayRules.BALANCE.drag_distance * float(profile.max_drag_multiplier) * fraction, 0)\n\tgame.update_aim(pointer)\n\tcheck(absf(game.hud.power_bar.value - fraction * 100.0) < 0.1, \"drag updates normalized power\")\n\treturn pointer\nfunc run_test() -> void:\n\tvar game: Node = load(\"res://scenes/main.tscn\").instantiate()\n\troot.add_child(game)\n\tawait process_frame\n\tgame.start_game()\n\tgame.set_physics_process(false)\n\tcheck_zero(game, \"initial HUD\")\n\tvar pointer := aim(game, 0.62)\n\tgame.cancel_aim()\n\tcheck_zero(game, \"cancel\")\n\tcheck(not game.dragging and game.selected_piece == null, \"cancel clears input state\")\n\tgame.update_aim(pointer)\n\tcheck_zero(game, \"stale aim event\")\n\tfor online in [false, true]:\n\t\tgame.online_mode = online\n\t\tgame.online_is_host = online\n\t\tgame.local_player_id = 1\n\t\tgame.current_player = 1\n\t\tfor fraction in [0.62, 0.3, 0.9]:\n\t\t\tgame.state_machine.transition(GameStateMachine.State.PLAYER_AIMING)\n\t\t\tpointer = aim(game, fraction)\n\t\t\tgame.fire_selected(pointer)\n\t\t\tcheck_zero(game, \"immediate launch\")\n\t\t\tcheck(not game.dragging and game.selected_piece == null, \"launch clears input state\")\n\t\t\tgame.update_aim(pointer)\n\t\t\tawait process_frame\n\t\t\tcheck_zero(game, \"moving\")\n\t\t\tgame.resolve_turn()\n\t\t\tcheck_zero(game, \"next turn HUD\")\n\t\t\tgame.current_player = 1\n\tgame.online_mode = false\n\tgame.current_player = 1\n\tgame.state_machine.transition(GameStateMachine.State.PLAYER_AIMING)\n\tgame.augment_manager.acquire(game, 1, &\"triple_shot\")\n\tvar triple: AugmentEffect\n\tfor effect in game.augment_manager.effects[1]:\n\t\tif effect.definition.id == &\"triple_shot\":\n\t\t\ttriple = effect\n\tif triple:\n\t\ttriple.activate_immediate(game, 1)\n\t\tgame.state_machine.transition(GameStateMachine.State.PLAYER_AIMING)\n\t\tpointer = aim(game, 0.5)\n\t\tgame.fire_selected(pointer)\n\t\tcheck_zero(game, \"augmented launch\")\n\t# Exercise client submission without sending an external GD-Sync packet.\n\tgame.online_mode = true\n\tgame.online_is_host = false\n\tgame.current_player = 2\n\tgame.local_player_id = 2\n\tgame.state_machine.transition(GameStateMachine.State.PLAYER_AIMING)\n\tpointer = aim(game, 0.62)\n\tgame.fire_selected(pointer)\n\tcheck_zero(game, \"client submission\")\n\tvar snapshot: Dictionary = game.create_network_snapshot()\n\tfor state in [GameStateMachine.State.PIECES_MOVING, GameStateMachine.State.PLAYER_AIMING]:\n\t\tsnapshot[\"state\"] = int(state)\n\t\tgame.apply_network_snapshot(snapshot)\n\t\tcheck_zero(game, \"client approval or rejection snapshot\")\n\tgame.build_hud()\n\tcheck_zero(game, \"rebuilt HUD\")\n\tgame.online_mode = false\n\tgame.start_game()\n\tcheck_zero(game, \"restart\")\n\tgame.queue_free()\n\tawait process_frame\n\tif failures == 0:\n\t\tprint(\"PASS: power zero on initialization, launch, cancel, augmented shot, client snapshots, rebuild and restart\")\n\tquit(failures)\n\n"
+      },
+      {
+        "path": "tests/test_client_active_skill.gd",
+        "sha": "61a5752933cb5f45af685bdfc74b62a2ec73baca",
+        "content": "extends SceneTree\n\nvar failures := 0\n\nfunc _init() -> void:\n\tcall_deferred(\"run_test\")\n\nfunc check(condition: bool, message: String) -> void:\n\tif not condition:\n\t\tfailures += 1\n\t\tpush_error(\"FAIL: \" + message)\n\nfunc prepare_client_turn(game: Node, augment_id: StringName) -> AugmentEffect:\n\tgame.start_game()\n\tgame.online_mode = true\n\tgame.online_is_host = false\n\tgame.local_player_id = 2\n\tgame.current_player = 2\n\tgame.state_machine.transition(GameStateMachine.State.PLAYER_AIMING)\n\tcheck(game.augment_manager.acquire(game, 2, augment_id), \"client acquires %s\" % augment_id)\n\tgame.build_hud()\n\tfor effect: AugmentEffect in game.augment_manager.effects[2]:\n\t\tif effect.definition.id == augment_id:\n\t\t\treturn effect\n\treturn null\n\nfunc press_active_button(game: Node, effect: AugmentEffect) -> void:\n\tvar button: Button\n\tfor candidate in game.hud.find_children(\"*\", \"Button\", true, false):\n\t\tif candidate is Button and effect.definition.display_name in candidate.text:\n\t\t\tbutton = candidate\n\t\t\tbreak\n\tcheck(button != null, \"%s button is present\" % effect.definition.id)\n\tif button:\n\t\tbutton.pressed.emit()\n\nfunc verify_snapshot_does_not_cancel_targeting(game: Node, label: String) -> void:\n\tvar snapshot: Dictionary = game.create_network_snapshot()\n\tsnapshot[\"state\"] = int(GameStateMachine.State.PLAYER_AIMING)\n\tsnapshot[\"current_player\"] = 2\n\tgame.apply_network_snapshot(snapshot)\n\tcheck(game.state_machine.current == GameStateMachine.State.SKILL_TARGETING, \"%s targeting survives host aiming snapshot\" % label)\n\nfunc run_test() -> void:\n\tvar game := (load(\"res://scenes/main.tscn\") as PackedScene).instantiate()\n\troot.add_child(game)\n\tawait process_frame\n\n\tvar snowball := prepare_client_turn(game, &\"snowball\")\n\tpress_active_button(game, snowball)\n\tcheck(game.state_machine.current == GameStateMachine.State.SKILL_TARGETING, \"snowball button enters targeting\")\n\tverify_snapshot_does_not_cancel_targeting(game, \"snowball\")\n\tvar own_piece: AlkkagiPiece\n\tvar enemy_piece: AlkkagiPiece\n\tfor piece in game.get_pieces():\n\t\tif piece.owner_id == 2 and own_piece == null:\n\t\t\town_piece = piece\n\t\telif piece.owner_id == 1 and enemy_piece == null:\n\t\t\tenemy_piece = piece\n\tsnowball.update_target_preview(game, 2, enemy_piece.position)\n\tcheck(is_instance_valid((snowball as SnowballAugmentEffect)._visual), \"snowball aiming displays a trajectory preview\")\n\tgame.cancel_active_skill()\n\tcheck(game.state_machine.current == GameStateMachine.State.PLAYER_AIMING, \"snowball targeting can be cancelled\")\n\n\tvar greatsword := prepare_client_turn(game, &\"greatsword\")\n\tpress_active_button(game, greatsword)\n\tcheck(game.state_machine.current == GameStateMachine.State.SKILL_TARGETING, \"greatsword button enters targeting\")\n\tverify_snapshot_does_not_cancel_targeting(game, \"greatsword\")\n\town_piece = null\n\tenemy_piece = null\n\tfor piece in game.get_pieces():\n\t\tif piece.owner_id == 2 and own_piece == null:\n\t\t\town_piece = piece\n\t\telif piece.owner_id == 1 and enemy_piece == null:\n\t\t\tenemy_piece = piece\n\tgame._on_piece_pressed(enemy_piece)\n\tcheck(game.network_skill_targets.is_empty(), \"greatsword rejects an enemy target locally\")\n\tgame._on_piece_pressed(own_piece)\n\tcheck(game.network_skill_targets == [own_piece.piece_id], \"greatsword accepts an allied target\")\n\n\tvar wall := prepare_client_turn(game, &\"wall_maria\")\n\tpress_active_button(game, wall)\n\tcheck(game.state_machine.current == GameStateMachine.State.SKILL_TARGETING, \"wall maria button enters targeting\")\n\tverify_snapshot_does_not_cancel_targeting(game, \"wall maria\")\n\twall.on_targeting_key(game, 2, KEY_R)\n\tcheck(wall.targeting_option() == 1 and wall.preview != null, \"wall maria client can rotate and preview before submitting\")\n\tgame.confirm_board_position_skill(AlkkagiBoard.BOARD_RECT.get_center())\n\tcheck(game.state_machine.current == GameStateMachine.State.SKILL_TARGETING, \"wall maria board click follows the client RPC path\")\n\n\tif failures == 0:\n\t\tprint(\"PASS: client active-skill button and targeting tests\")\n\tquit(failures)\n\n"
+      },
+      {
+        "path": "tests/test_stasis_pass_turn.gd",
+        "sha": "b9e7beb73579cc96e0b60c326aa208e544c63c78",
+        "content": "late old-turn snapshot cannot undo pass"
+      }
+    ],
+    "commits": [
+      {
+        "id": "ed2086c42a8977a2fb554fe0c70168838dcb41a2",
+        "message": "author: peeta0126\nfix: resolve client active skill targeting and network sync issues\nscripts/core/game_manager.gd\n@@ -51,6 +51,11 @@ var network_status_label: Label\n var network_winner := 0\n var network_wall_signature := \"\"\n var next_wall_id := 1\n+var skill_targeting_snapshot_logged := false\n+\n+func _skill_debug(message: String) -> void:\n+\tif OS.is_debug_build():\n+\t\tprint(\"[active-skill] %s\" % message)\n \n func _ready() -> void:\n \tstate_machine = StateMachineScript.new()\n@@ -576,10 +581,12 @@ func _add_augment_hud(player_id: int, hud_position: Vector2) -> void:\n \n func _add_active_skill_hud() -> void:\n \tif online_mode and current_player != local_player_id:\n+\t\t_skill_debug(\"HUD skipped: current_player=%d local_player=%d state=%s\" % [current_player, local_player_id, GameStateMachine.State.keys()[state_machine.current]])\n \t\treturn\n \tvar actives := augment_manager.active_effects(current_player)\n \tif actives.is_empty():\n \t\treturn\n+\t_skill_debug(\"HUD built: current_player=%d local_player=%d state=%s active_count=%d\" % [current_player, local_player_id, GameStateMachine.State.keys()[state_machine.current], actives.size()])\n \tvar box := VBoxContainer.new()\n \tbox.position = Vector2(950, 330)\n \tbox.size = Vector2(300, 220)\n@@ -607,9 +614,16 @@ func _add_blind_overlay() -> void:\n \thud.add_child(warning)\n \n func _activate_skill(effect: AugmentEffect) -> void:\n-\tif not state_machine.allows_aiming() or not effect.can_activate(self, current_player):\n+\tvar can_use := effect.can_activate(self, current_player)\n+\t_skill_debug(\"button pressed: augment=%s current_player=%d local_player=%d state=%s can_activate=%s\" % [effect.definition.id, current_player, local_player_id, GameStateMachine.State.keys()[state_machine.current], can_use])\n+\tif not state_machine.allows_aiming():\n+\t\t_skill_debug(\"activation rejected locally: state does not allow aiming\")\n+\t\treturn\n+\tif not can_use:\n+\t\t_skill_debug(\"activation rejected locally: can_activate=false\")\n \t\treturn\n \tif online_mode and current_player != local_player_id:\n+\t\t_skill_debug(\"activation rejected locally: not the local player's turn\")\n \t\treturn\n \tif online_mode and not online_is_host:\n \t\tif current_player != local_player_id:\n@@ -629,13 +643,16 @@ func begin_skill_targeting(effect: AugmentEffect, player_id: int) -> void:\n \tactive_skill = effect\n \tactive_skill_player = player_id\n \tstate_machine.transition(GameStateMachine.State.SKILL_TARGETING)\n+\tskill_targeting_snapshot_logged = false\n+\t_skill_debug(\"entered SKILL_TARGETING: augment=%s player=%d\" % [effect.definition.id, player_id])\n \tset_skill_hint(\"%s: 대상을 선택하세요. 우클릭으로 취소\" % effect.definition.display_name)\n \n func cancel_active_skill() -> void:\n \tif active_skill:\n \t\tactive_skill.cancel_active()\n \tactive_skill = null\n \tactive_skill_player = 0\n+\tskill_targeting_snapshot_logged = false\n \tstate_machine.transition(GameStateMachine.State.PLAYER_AIMING)\n \tupdate_hud(\"자신의 돌을 잡아당겨 발사하세요\")\n \n@@ -661,6 +678,7 @@ func _current_shot_profile() -> Dictionary:\n \n func _on_piece_pressed(piece: AlkkagiPiece) -> void:\n \tif state_machine.current == GameStateMachine.State.SKILL_TARGETING and active_skill:\n+\t\t_skill_debug(\"piece target clicked: augment=%s piece=%d owner=%d\" % [active_skill.definition.id, piece.piece_id, piece.owner_id])\n \t\tif online_mode and not online_is_host:\n \t\t\t_network_collect_skill_target(piece)\n \t\t\treturn\n@@ -728,6 +746,7 @@ func confirm_board_position_skill(board_position: Vector2) -> void:\n \t\treturn\n \tif online_mode and not online_is_host:\n \t\tvar target_ids: Array[int] = []\n+\t\t_skill_debug(\"board target submitted: augment=%s position=%s\" % [active_skill.definition.id, board_position])\n \t\tnetwork_manager.submit_active_skill(active_skill.definition.id, target_ids, board_position)\n \t\tnetwork_show_waiting(\"벽 설치 요청을 호스트가 검증하는 중…\")\n \telse:\n@@ -1253,12 +1272,31 @@ func apply_network_snapshot(snapshot: Dictionary) -> void:\n \tif state_machine.current in [GameStateMachine.State.INITIAL_AUGMENT_SELECTION, GameStateMachine.State.AUGMENT_SELECTION]:\n \t\treturn\n \tvar remote_state := int(snapshot.get(\"state\", GameStateMachine.State.PLAYER_AIMING))\n+\t# Target selection is client-local until an active-skill request reaches the\n+\t# host. The host legitimately remains in PLAYER_AIMING during that interval.\n+\tif state_machine.current == GameStateMachine.State.SKILL_TARGETING and current_player == local_player_id and remote_state == GameStateMachine.State.PLAYER_AIMING:\n+\t\tif not skill_targeting_snapshot_logged:\n+\t\t\t_skill_debug(\"kept local SKILL_TARGETING while host snapshot is PLAYER_AIMING\")\n+\t\t\tskill_targeting_snapshot_logged = true\n+\t\treturn\n+\tskill_targeting_snapshot_logged = false\n \tif remote_state in [GameStateMachine.State.PLAYER_AIMING, GameStateMachine.State.PIECES_MOVING]:\n \t\tstate_machine.transition(remote_state as GameStateMachine.State)\n \tif previous_player != current_player or turn_label == null:\n \t\tbuild_hud()\n \tupdate_hud(\"자신의 차례입니다\" if current_player == local_player_id else \"상대 차례를 기다리는 중…\")\n \n+func network_active_skill_rejected(reason: String) -> void:\n+\t_skill_debug(\"host rejected active request: %s\" % reason)\n+\tnetwork_skill_targets.clear()\n+\tbuild_hud()\n+\tif active_skill != null:\n+\t\tstate_machine.transition(GameStateMachine.State.SKILL_TARGETING)\n+\t\tset_skill_hint(\"요청 거절: %s — 대상을 다시 선택하세요\" % reason)\n+\telse:\n+\t\tstate_machine.transition(GameStateMachine.State.PLAYER_AIMING)\n+\t\tupdate_hud(\"스킬 요청 거절: %s\" % reason)\n+\n func _apply_network_effect_runtime(states: Dictionary) -> void:\n \tfor player_id in [1, 2]:\n \t\tfor state: Dictionary in states.get(player_id, states.get(str(player_id), [])):\nscripts/network/network_manager.gd\n@@ -338,12 +338,15 @@ func request_active_skill(augment_id: String, target_ids: Array, board_position:\n \tif mode != Mode.HOST:\n \t\treturn\n \tvar sender := multiplayer.get_remote_sender_id()\n+\tvar player_id := _player_for_peer(sender)\n \tif not _valid_sequence(sender, sequence, \"active skill\"):\n+\t\t_reject_active_skill(player_id, \"중복되거나 오래된 요청입니다\")\n \t\treturn\n \tvar validated_target_ids: Array[int] = []\n \tif not validate_active_target_ids(target_ids, validated_target_ids):\n+\t\t_reject_active_skill(player_id, \"대상 ID 형식이 올바르지 않습니다\")\n \t\treturn\n-\t_host_process_active(_player_for_peer(sender), StringName(augment_id), validated_target_ids, board_position, sequence)\n+\t_host_process_active(player_id, StringName(augment_id), validated_target_ids, board_position, sequence)\n \n func validate_active_target_ids(raw_target_ids: Array, validated_target_ids: Array[int]) -> bool:\n \tvalidated_target_ids.clear()\n@@ -356,43 +359,79 @@ func validate_active_target_ids(raw_target_ids: Array, validated_target_ids: Arr\n \treturn true\n \n func _host_process_active(player_id: int, augment_id: StringName, target_ids: Array[int], board_position: Vector2, _sequence: int) -> void:\n-\tif mode != Mode.HOST or player_id != game().current_player or not game().state_machine.allows_aiming():\n+\tif OS.is_debug_build():\n+\t\tprint(\"[active-skill] host request: player=%d augment=%s targets=%s position=%s current_player=%d state=%s\" % [player_id, augment_id, target_ids, board_position, game().current_player, GameStateMachine.State.keys()[game().state_machine.current]])\n+\tif mode != Mode.HOST:\n+\t\treturn\n+\tif player_id != game().current_player:\n+\t\t_reject_active_skill(player_id, \"현재 플레이어의 차례가 아닙니다\")\n+\t\treturn\n+\tif not game().state_machine.allows_aiming():\n+\t\t_reject_active_skill(player_id, \"현재 상태에서는 스킬을 사용할 수 없습니다\")\n \t\treturn\n \tvar effect: AugmentEffect\n \tfor candidate: AugmentEffect in game().augment_manager.effects[player_id]:\n \t\tif candidate.definition.id == augment_id:\n \t\t\teffect = candidate\n \t\t\tbreak\n-\tif effect == null or not effect.can_activate(game(), player_id):\n+\tif effect == null:\n+\t\t_reject_active_skill(player_id, \"보유하지 않은 스킬입니다\")\n+\t\treturn\n+\tif not effect.can_activate(game(), player_id):\n+\t\t_reject_active_skill(player_id, \"사용 횟수 또는 재사용 대기시간 조건을 만족하지 않습니다\")\n \t\treturn\n \tvar required := 0\n \tif effect.definition.target_mode in [AugmentDefinition.TargetMode.OWN_PIECE, AugmentDefinition.TargetMode.ENEMY_PIECE]:\n \t\trequired = 1\n \tif effect.definition.target_mode == AugmentDefinition.TargetMode.TWO_OWN_PIECES or augment_id == &\"wizard\":\n \t\trequired = 2\n \tif target_ids.size() != required or (target_ids.size() == 2 and target_ids[0] == target_ids[1]):\n+\t\t_reject_active_skill(player_id, \"필요한 대상 수가 올바르지 않습니다\")\n \t\treturn\n \tfor index in target_ids.size():\n \t\tvar validated_piece: AlkkagiPiece = game().find_piece(target_ids[index])\n \t\tif validated_piece == null:\n+\t\t\t_reject_active_skill(player_id, \"대상 바둑알을 찾을 수 없습니다\")\n \t\t\treturn\n \t\tif augment_id == &\"wizard\":\n \t\t\tif (index == 0 and validated_piece.owner_id != player_id) or (index == 1 and validated_piece.owner_id == player_id):\n+\t\t\t\t_reject_active_skill(player_id, \"마법사 대상 순서가 올바르지 않습니다\")\n \t\t\t\treturn\n \t\telif effect.definition.target_mode in [AugmentDefinition.TargetMode.OWN_PIECE, AugmentDefinition.TargetMode.TWO_OWN_PIECES] and validated_piece.owner_id != player_id:\n+\t\t\t_reject_active_skill(player_id, \"자신의 바둑알을 선택해야 합니다\")\n \t\t\treturn\n \t\telif effect.definition.target_mode == AugmentDefinition.TargetMode.ENEMY_PIECE and validated_piece.owner_id == player_id:\n+\t\t\t_reject_active_skill(player_id, \"상대 바둑알을 선택해야 합니다\")\n \t\t\treturn\n \tif effect.definition.target_mode == AugmentDefinition.TargetMode.NONE:\n \t\teffect.activate_immediate(game(), player_id)\n \telif effect.definition.target_mode == AugmentDefinition.TargetMode.BOARD_POSITION:\n-\t\teffect.on_position_target(game(), player_id, board_position)\n+\t\tif not effect.on_position_target(game(), player_id, board_position):\n+\t\t\t_reject_active_skill(player_id, \"해당 위치에는 설치할 수 없습니다\")\n \telse:\n-\t\tfor target_id in target_ids:\n+\t\tvar applied := false\n+\t\tfor index in target_ids.size():\n+\t\t\tvar target_id: int = target_ids[index]\n \t\t\tvar piece: AlkkagiPiece = game().find_piece(target_id)\n \t\t\tif piece == null:\n+\t\t\t\t_reject_active_skill(player_id, \"대상 바둑알이 사라졌습니다\")\n \t\t\t\treturn\n-\t\t\teffect.on_piece_target(game(), player_id, piece)\n+\t\t\tvar accepted := effect.on_piece_target(game(), player_id, piece)\n+\t\t\tif index == target_ids.size() - 1:\n+\t\t\t\tapplied = accepted\n+\t\tif not applied:\n+\t\t\teffect.cancel_active()\n+\t\t\t_reject_active_skill(player_id, \"선택한 대상에 스킬을 적용할 수 없습니다\")\n+\n+func _reject_active_skill(player_id: int, reason: String) -> void:\n+\tif OS.is_debug_build():\n+\t\tpush_warning(\"[active-skill] rejected player %d: %s\" % [player_id, reason])\n+\tif player_id == 1:\n+\t\tgame().network_active_skill_rejected(reason)\n+\telif player_id == 2:\n+\t\tvar peer_id := _peer_for_player(2)\n+\t\tif peer_id != 0:\n+\t\t\treceive_active_skill_rejected.rpc_id(peer_id, reason)\n \n func broadcast_projectile(from: Vector2, to: Vector2, color: Color, size: float) -> void:\n \tif mode == Mode.HOST:\n@@ -429,6 +468,10 @@ func receive_world_start(count: int) -> void:\n func receive_selection_complete(stage: int, resume_player: int, completed_round: int) -> void:\n \tgame().network_selection_complete(stage, resume_player, completed_round)\n \n+@rpc(\"authority\", \"call_remote\", \"reliable\")\n+func receive_active_skill_rejected(reason: String) -> void:\n+\tgame().network_active_skill_rejected(reason)\n+\n @rpc(\"authority\", \"call_remote\", \"unreliable_ordered\", 1)\n func receive_snapshot(snapshot: Dictionary) -> void:\n \tif mode == Mode.CLIENT:"
+      },
+      {
+        "id": "989b60c08816f7dacaa370e9e651aa43bf6684d5",
+        "message": "author: peeta0126\nFix UI layout, network skills, shot power reset and lobby title\nscenes/ui/game_hud.tscn\n@@ -428,7 +428,7 @@ layout_mode = 2\n mouse_filter = 2\n theme_override_styles/background = SubResource(\"StyleBoxFlat_power_background\")\n theme_override_styles/fill = SubResource(\"StyleBoxFlat_power_fill\")\n-value = 62.0\n+value = 0.0\n show_percentage = false\n \n [node name=\"HintLabel\" type=\"Label\" parent=\"BottomInfo\"]\nscripts/core/game_manager.gd\n@@ -820,7 +820,7 @@ func _on_piece_pressed(piece: AlkkagiPiece) -> void:\n \tupdate_hud(\"ESC / 우클릭: 발사 취소\")\n \n func update_aim(pointer: Vector2) -> void:\n-\tif selected_piece == null:\n+\tif not dragging or not state_machine.allows_aiming() or not is_instance_valid(selected_piece):\n \t\treturn\n \tvar profile := _current_shot_profile()\n \tvar max_drag := GameplayRules.BALANCE.drag_distance * float(profile.max_drag_multiplier)\n@@ -910,7 +910,7 @@ func confirm_board_position_skill(board_position: Vector2) -> void:\n \t\t_skill_debug(\"board target submitted: augment=%s position=%s\" % [active_skill.definition.id, board_position])\n \t\tnetwork_manager.submit_active_skill(active_skill.definition.id, target_ids, board_position, active_skill.targeting_option())\n \t\tactive_skill.cancel_active()\n-\t\tnetwork_show_waiting(\"벽 설치 요청을 호스트가 검증하는 중…\")\n+\t\tnetwork_show_waiting(\"%s 설치 요청을 호스트가 검증하는 중...\" % (\"중력장\" if active_skill.definition.id == &\"gravity_field\" else \"벽\"))\n \telse:\n \t\tactive_skill.on_position_target(self, active_skill_player, board_position)\n \n@@ -944,12 +944,7 @@ func fire_selected(pointer: Vector2) -> void:\n \tif not transformed:\n \t\tselected_piece.apply_launch_impulse(impulse)\n \taugment_manager.after_shot(self, current_player, selected_piece)\n-\tselected_piece = null\n-\tdragging = false\n-\tboard.clear_aim()\n-\tvar game_hud := _get_game_hud()\n-\tif game_hud:\n-\t\tgame_hud.set_power_percent(0.0)\n+\tcancel_aim()\n \tsettle_time = 0.0\n \tshot_elapsed = 0.0\n \tstate_machine.transition(GameStateMachine.State.PIECES_MOVING)\n@@ -1599,6 +1594,27 @@ func apply_network_extras(effects: Dictionary, walls: PackedFloat32Array) -> voi\n \t_apply_network_effect_runtime(effects)\n \t_sync_network_walls(walls)\n \n+func network_active_skill_result(accepted: bool, reason: String, snapshot: Dictionary) -> void:\n+\tvar previous_state := state_machine.current\n+\tif previous_state not in [GameStateMachine.State.SKILL_TARGETING, GameStateMachine.State.PLAYER_AIMING, GameStateMachine.State.PIECES_MOVING]:\n+\t\treturn # A delayed response must not replace selection, lobby or game-over UI.\n+\tif active_skill:\n+\t\tactive_skill.cancel_active()\n+\tactive_skill = null\n+\tactive_skill_player = 0\n+\tnetwork_skill_targets.clear()\n+\tskill_targeting_snapshot_logged = false\n+\t# Only the host snapshot can commit effects or advance the replicated turn.\n+\tif previous_state == GameStateMachine.State.SKILL_TARGETING:\n+\t\tstate_machine.transition(GameStateMachine.State.PLAYER_AIMING)\n+\tif not snapshot.is_empty():\n+\t\tapply_network_extras(snapshot.get(\"effects\", {}), snapshot.get(\"walls\", PackedFloat32Array()))\n+\t\tapply_network_snapshot(snapshot)\n+\tbuild_hud()\n+\tif not accepted:\n+\t\tupdate_hud(\"스킬 요청 실패: %s\" % reason)\n+\t_skill_debug(\"request completed: accepted=%s state=%s -> %s\" % [accepted, previous_state, state_machine.current])\n+\n func network_active_skill_rejected(reason: String) -> void:\n \t_skill_debug(\"host rejected active request: %s\" % reason)\n \tnetwork_skill_targets.clear()\nscripts/network/network_manager.gd\n@@ -9,8 +9,9 @@ const SNAPSHOT_INTERVAL := 0.05\n const SNAPSHOT_HEARTBEAT := 1.0\n const SNAPSHOT_REPEATS := 2\n const SNAPSHOT_IDLE_GAP := 0.3\n+const ACTIVE_REQUEST_TIMEOUT := 8.0\n # v4 separates reliable world extras from throttled movement snapshots.\n-const PROTOCOL_VERSION := 4\n+const PROTOCOL_VERSION := 5\n const ROOM_PREFIX := \"AA-\"\n const ROOM_CODE_LENGTH := 6\n const ROOM_CREATE_ATTEMPTS := 5\n@@ -36,6 +37,11 @@ var selection_refresh_used: Dictionary = {1: false, 2: false}\n var pending_choices: Dictionary = {}\n var placement_completed: Dictionary = {1: false, 2: false}\n var last_sequences: Dictionary = {}\n+var pending_active_sequence := 0\n+var pending_active_seconds := 0.0\n+var active_response_context := false\n+var active_response_reason := \"\"\n+var active_results: Dictionary = {}\n var local_sequence := 0\n var snapshot_elapsed := 0.0\n var heartbeat_elapsed := 0.0\n@@ -79,6 +85,7 @@ func _ready() -> void:\n \tGDSync.expose_func(receive_world_start, ENUMS.EXPOSE_PERMISSION.HOST)\n \tGDSync.expose_func(receive_selection_complete, ENUMS.EXPOSE_PERMISSION.HOST)\n \tGDSync.expose_func(receive_active_skill_rejected, ENUMS.EXPOSE_PERMISSION.HOST)\n+\tGDSync.expose_func(receive_active_skill_result, ENUMS.EXPOSE_PERMISSION.HOST)\n \tGDSync.expose_func(receive_snapshot, ENUMS.EXPOSE_PERMISSION.HOST)\n \tGDSync.expose_func(receive_world_extras, ENUMS.EXPOSE_PERMISSION.HOST)\n \t_reset_snapshot_cache()\n@@ -133,6 +140,8 @@ func join_online_room(code: String) -> Error:\n \n func _reset_lobby_state() -> void:\n \tlast_sequences.clear()\n+\tactive_results.clear()\n+\tpending_active_sequence = 0\n \tlocal_sequence = 0\n \tpeer_to_player.clear()\n \tready_state = {1: false, 2: false}\n@@ -154,6 +163,8 @@ func shutdown(notify: bool = true) -> void:\n \tmatch_active = false\n \tlast_snapshot_received_usec = 0\n \tlast_sequences.clear()\n+\tactive_results.clear()\n+\tpending_active_sequence = 0\n \tlocal_sequence = 0\n \tpeer_to_player = {1: 1}\n \tready_state = {1: false, 2: false}\n@@ -323,13 +334,31 @@ func submit_shot(piece_id: int, pull_vector: Vector2) -> void:\n \t\tGDSync.call_func_on(gdsync_host_id, request_shot, piece_id, pull_vector, local_sequence)\n \n func submit_active_skill(augment_id: StringName, target_ids: Array[int], board_position: Vector2 = Vector2.ZERO, targeting_option: int = 0) -> void:\n+\tif pending_active_sequence != 0:\n+\t\treturn\n \tlocal_sequence += 1\n \tif is_host():\n \t\t_host_process_active(1, augment_id, target_ids, board_position, local_sequence, targeting_option)\n \telif mode == Mode.CLIENT:\n+\t\tpending_active_sequence = local_sequence\n+\t\tpending_active_seconds = 0.0\n+\t\tprint(\"[active-skill] send id=%d player=%d host=%d type=%s position=%s\" % [local_sequence, local_player_id, gdsync_host_id, augment_id, board_position])\n \t\tGDSync.call_func_on(gdsync_host_id, request_active_skill, str(augment_id), target_ids, board_position, local_sequence, targeting_option)\n \n+func _tick_active_request(delta: float) -> void:\n+\tif pending_active_sequence == 0:\n+\t\treturn\n+\tif mode != Mode.CLIENT or not match_active:\n+\t\tpending_active_sequence = 0\n+\t\treturn\n+\tpending_active_seconds += delta\n+\tif pending_active_seconds >= ACTIVE_REQUEST_TIMEOUT:\n+\t\tprint(\"[active-skill] timeout id=%d host=%d\" % [pending_active_sequence, gdsync_host_id])\n+\t\tpending_active_sequence = 0\n+\t\tgame().network_active_skill_result(false, \"호스트 응답 시간이 초과되었습니다. 상태를 확인한 뒤 다시 시도하세요\", {})\n+\n func _process(delta: float) -> void:\n+\t_tick_active_request(delta)\n \tif not is_host() or not match_active or game().board == null:\n \t\treturn\n \tif game().state_machine.current in [GameStateMachine.State.INITIAL_AUGMENT_SELECTION, GameStateMachine.State.AUGMENT_SELECTION]:\n@@ -594,14 +623,45 @@ func request_active_skill(augment_id: String, target_ids: Array, board_position:\n \t\treturn\n \tvar sender := _remote_sender_id()\n \tvar player_id := _player_for_peer(sender)\n+\tif player_id != 2:\n+\t\treturn # Unknown senders cannot mutate the match.\n+\tvar key := \"%d:%d\" % [sender, sequence]\n+\tprint(\"[active-skill] receive id=%d sender=%d host=%d type=%s position=%s state=%s\" % [sequence, sender, gdsync_host_id, augment_id, board_position, game().state_machine.current])\n+\tif active_results.has(key):\n+\t\t_send_active_result(sender, sequence, active_results[key])\n+\t\treturn\n+\tactive_response_context = true\n+\tactive_response_reason = \"\"\n+\tvar accepted := false\n+\tvar validated_target_ids: Array[int] = []\n \tif not _valid_sequence(sender, sequence, \"active skill\"):\n-\t\t_reject_active_skill(player_id, \"중복되거나 오래된 요청입니다\")\n+\t\tactive_response_reason = \"중복되거나 오래된 요청입니다\"\n+\telif not validate_active_target_ids(target_ids, validated_target_ids):\n+\t\tactive_response_reason = \"대상 ID 형식이 올바르지 않습니다\"\n+\telse:\n+\t\taccepted = _host_process_active(player_id, StringName(augment_id), validated_target_ids, board_position, sequence, targeting_option)\n+\tactive_response_context = false\n+\tvar result := {\"accepted\": accepted, \"reason\": active_response_reason, \"snapshot\": game().create_network_snapshot()}\n+\tactive_results[key] = result\n+\tif active_results.size() > 64:\n+\t\tactive_results.erase(active_results.keys()[0])\n+\t_send_active_result(sender, sequence, result)\n+\n+func _send_active_result(peer_id: int, sequence: int, result: Dictionary) -> void:\n+\tprint(\"[active-skill] response id=%d peer=%d accepted=%s reason=%s state=%s\" % [sequence, peer_id, result.accepted, result.reason, result.snapshot.get(\"state\")])\n+\tGDSync.call_func_on(peer_id, receive_active_skill_result, sequence, result.accepted, result.reason, result.snapshot)\n+\n+func receive_active_skill_result(sequence: int, accepted: bool, reason: String, snapshot: Dictionary) -> void:\n+\tif GDSync.get_sender_id() != gdsync_host_id:\n \t\treturn\n-\tvar validated_target_ids: Array[int] = []\n-\tif not validate_active_target_ids(target_ids, validated_target_ids):\n-\t\t_reject_active_skill(player_id, \"대상 ID 형식이 올바르지 않습니다\")\n+\t_apply_active_result(sequence, accepted, reason, snapshot)\n+\n+func _apply_active_result(sequence: int, accepted: bool, reason: String, snapshot: Dictionary) -> void:\n+\tif sequence != pending_active_sequence or pending_active_sequence == 0:\n \t\treturn\n-\t_host_process_active(player_id, StringName(augment_id), validated_target_ids, board_position, sequence, targeting_option)\n+\tprint(\"[active-skill] result received id=%d host=%d accepted=%s state=%s\" % [sequence, gdsync_host_id, accepted, snapshot.get(\"state\")])\n+\tpending_active_sequence = 0\n+\tgame().network_active_skill_result(accepted, reason, snapshot)\n \n func validate_active_target_ids(raw_target_ids: Array, validated_target_ids: Array[int]) -> bool:\n \tvalidated_target_ids.clear()\n@@ -613,32 +673,32 @@ func validate_active_target_ids(raw_target_ids: Array, validated_target_ids: Arr\n \t\tvalidated_target_ids.append(int(target_id))\n \treturn true\n \n-func _host_process_active(player_id: int, augment_id: StringName, target_ids: Array[int], board_position: Vector2, _sequence: int, targeting_option: int = 0) -> void:\n+func _host_process_active(player_id: int, augment_id: StringName, target_ids: Array[int], board_position: Vector2, _sequence: int, targeting_option: int = 0) -> bool:\n \tif OS.is_debug_build():\n-\t\tprint(\"[active-skill] host request: player=%d augment=%s targets=%s position=%s current_player=%d state=%s\" % [player_id, augment_id, target_ids, board_position, game().current_player, GameStateMachine.State.keys()[game().state_machine.current]])\n+\t\tprint(\"[active-skill] host request: id=%d player=%d augment=%s targets=%s position=%s current_player=%d state=%s\" % [_sequence, player_id, augment_id, target_ids, board_position, game().current_player, GameStateMachine.State.keys()[game().state_machine.current]])\n \tif not is_host():\n-\t\treturn\n-\tif player_id != game().current_player:\n+\t\treturn false\n+\tif player_id not in [1, 2] or player_id != game().current_player:\n \t\t_reject_active_skill(player_id, \"현재 플레이어의 차례가 아닙니다\")\n-\t\treturn\n+\t\treturn false\n \tif not game().state_machine.allows_aiming():\n \t\t_reject_active_skill(player_id, \"현재 상태에서는 스킬을 사용할 수 없습니다\")\n-\t\treturn\n+\t\treturn false\n \tvar effect: AugmentEffect\n \tfor candidate: AugmentEffect in game().augment_manager.effects[player_id]:\n \t\tif candidate.definition.id == augment_id:\n \t\t\teffect = candidate\n \t\t\tbreak\n \tif effect == null:\n \t\t_reject_active_skill(player_id, \"보유하지 않은 스킬입니다\")\n-\t\treturn\n+\t\treturn false\n \tif not effect.can_activate(game(), player_id):\n \t\t_reject_active_skill(player_id, \"사용 횟수 또는 재사용 대기시간 조건을 만족하지 않습니다\")\n-\t\treturn\n+\t\treturn false\n \tif augment_id == &\"wall_maria\":\n \t\tif targeting_option not in [0, 1]:\n \t\t\t_reject_active_skill(player_id, \"벽 방향 값이 올바르지 않습니다\")\n-\t\t\treturn\n+\t\t\treturn false\n \t\teffect.apply_targeting_option(targeting_option)\n \tvar required := 0\n \tif effect.definition.target_mode in [AugmentDefinition.TargetMode.OWN_PIECE, AugmentDefinition.TargetMode.ENEMY_PIECE]:\n@@ -647,43 +707,50 @@ func _host_process_active(player_id: int, augment_id: StringName, target_ids: Ar\n \t\trequired = 2\n \tif target_ids.size() != required or (target_ids.size() == 2 and target_ids[0] == target_ids[1]):\n \t\t_reject_active_skill(player_id, \"필요한 대상 수가 올바르지 않습니다\")\n-\t\treturn\n+\t\treturn false\n \tfor index in target_ids.size():\n \t\tvar validated_piece: AlkkagiPiece = game().find_piece(target_ids[index])\n \t\tif validated_piece == null:\n \t\t\t_reject_active_skill(player_id, \"대상 바둑알을 찾을 수 없습니다\")\n-\t\t\treturn\n+\t\t\treturn false\n \t\tif augment_id == &\"wizard\":\n \t\t\tif (index == 0 and validated_piece.owner_id != player_id) or (index == 1 and validated_piece.owner_id == player_id):\n \t\t\t\t_reject_active_skill(player_id, \"마법사 대상 순서가 올바르지 않습니다\")\n-\t\t\t\treturn\n+\t\t\t\treturn false\n \t\telif effect.definition.target_mode in [AugmentDefinition.TargetMode.OWN_PIECE, AugmentDefinition.TargetMode.TWO_OWN_PIECES] and validated_piece.owner_id != player_id:\n \t\t\t_reject_active_skill(player_id, \"자신의 바둑알을 선택해야 합니다\")\n-\t\t\treturn\n+\t\t\treturn false\n \t\telif effect.definition.target_mode == AugmentDefinition.TargetMode.ENEMY_PIECE and validated_piece.owner_id == player_id:\n \t\t\t_reject_active_skill(player_id, \"상대 바둑알을 선택해야 합니다\")\n-\t\t\treturn\n+\t\t\treturn false\n \tif effect.definition.target_mode == AugmentDefinition.TargetMode.NONE:\n \t\teffect.activate_immediate(game(), player_id)\n \telif effect.definition.target_mode == AugmentDefinition.TargetMode.BOARD_POSITION:\n \t\tif not effect.on_position_target(game(), player_id, board_position):\n \t\t\t_reject_active_skill(player_id, \"해당 위치에는 설치할 수 없습니다\")\n+\t\t\treturn false\n \telse:\n \t\tvar applied := false\n \t\tfor index in target_ids.size():\n \t\t\tvar target_id: int = target_ids[index]\n \t\t\tvar piece: AlkkagiPiece = game().find_piece(target_id)\n \t\t\tif piece == null:\n \t\t\t\t_reject_active_skill(player_id, \"대상 바둑알이 사라졌습니다\")\n-\t\t\t\treturn\n+\t\t\t\treturn false\n \t\t\tvar accepted := effect.on_piece_target(game(), player_id, piece)\n \t\t\tif index == target_ids.size() - 1:\n \t\t\t\tapplied = accepted\n \t\tif not applied:\n \t\t\teffect.cancel_active()\n \t\t\t_reject_active_skill(player_id, \"선택한 대상에 스킬을 적용할 수 없습니다\")\n+\t\t\treturn false\n+\n+\treturn true\n \n func _reject_active_skill(player_id: int, reason: String) -> void:\n+\tif active_response_context:\n+\t\tactive_response_reason = reason\n+\t\treturn\n \tif OS.is_debug_build():\n \t\tpush_warning(\"[active-skill] rejected player %d: %s\" % [player_id, reason])\n \tif player_id == 1:\nscripts/ui/game_hud.gd\n@@ -33,6 +33,7 @@ func _ready() -> void:\n \t_active_button_template = %ActiveSkillButtonTemplate\n \t_passive_status_template = %PassiveStatusTemplate\n \t_apply_ink_style()\n+\tset_power_percent(0.0)\n \t# 오른쪽 열은 증강 → 패시브 상태 → 액티브 스킬 순으로 쌓는다.\n \tvar right_column := active_skills_panel.get_parent()\n \tright_column.move_child(passive_status_panel, active_skills_panel.get_index())\n@@ -253,4 +254,4 @@ func _refresh_power_gauge() -> void:\n \t_power_fill_panel.size.x = maxf((power_bar.custom_minimum_size.x - 40.0) * power, 0.0)\n \t_power_fill_panel.visible = power > 0.005\n \t_power_fill.bg_color = InkStyle.CREAM.lerp(InkStyle.ORANGE, clampf(power * 2.0, 0.0, 1.0)).lerp(Color(\"e0361a\"), clampf((power - 0.6) * 2.5, 0.0, 1.0))\n-\t_power_number.text = \"%d%%\" % int(round(power_bar.value)) if power_bar.value > 0.5 else \"당겨서 발사\"\n+\t_power_number.text = \"%d%%\" % int(round(power_bar.value))\ntests/test_shot_power_reset.gd\n@@ -0,0 +1,93 @@\n+extends SceneTree\n+\n+var failures := 0\n+func _init() -> void:\n+\tcall_deferred(\"run_test\")\n+func check(ok: bool, message: String) -> void:\n+\tif not ok:\n+\t\tfailures += 1\n+\t\tpush_error(\"FAIL: \" + message)\n+func check_zero(game: Node, label: String) -> void:\n+\tcheck(game.hud.power_bar.value == 0.0, label + \" range value is zero\")\n+\tcheck(game.hud._power_number.text == \"0%\", label + \" percentage is zero\")\n+\tcheck(not game.hud._power_fill_panel.visible, label + \" fill is empty\")\n+func aim(game: Node, fraction: float) -> Vector2:\n+\tvar piece: AlkkagiPiece\n+\tfor candidate in game.get_pieces():\n+\t\tif candidate.owner_id == game.current_player:\n+\t\t\tpiece = candidate\n+\t\t\tbreak\n+\tgame._on_piece_pressed(piece)\n+\tvar profile: Dictionary = game._current_shot_profile()\n+\tvar pointer := piece.global_position - Vector2(GameplayRules.BALANCE.drag_distance * float(profile.max_drag_multiplier) * fraction, 0)\n+\tgame.update_aim(pointer)\n+\tcheck(absf(game.hud.power_bar.value - fraction * 100.0) < 0.1, \"drag updates normalized power\")\n+\treturn pointer\n+func run_test() -> void:\n+\tvar game: Node = load(\"res://scenes/main.tscn\").instantiate()\n+\troot.add_child(game)\n+\tawait process_frame\n+\tgame.start_game()\n+\tgame.set_physics_process(false)\n+\tcheck_zero(game, \"initial HUD\")\n+\tvar pointer := aim(game, 0.62)\n+\tgame.cancel_aim()\n+\tcheck_zero(game, \"cancel\")\n+\tcheck(not game.dragging and game.selected_piece == null, \"cancel clears input state\")\n+\tgame.update_aim(pointer)\n+\tcheck_zero(game, \"stale aim event\")\n+\tfor online in [false, true]:\n+\t\tgame.online_mode = online\n+\t\tgame.online_is_host = online\n+\t\tgame.local_player_id = 1\n+\t\tgame.current_player = 1\n+\t\tfor fraction in [0.62, 0.3, 0.9]:\n+\t\t\tgame.state_machine.transition(GameStateMachine.State.PLAYER_AIMING)\n+\t\t\tpointer = aim(game, fraction)\n+\t\t\tgame.fire_selected(pointer)\n+\t\t\tcheck_zero(game, \"immediate launch\")\n+\t\t\tcheck(not game.dragging and game.selected_piece == null, \"launch clears input state\")\n+\t\t\tgame.update_aim(pointer)\n+\t\t\tawait process_frame\n+\t\t\tcheck_zero(game, \"moving\")\n+\t\t\tgame.resolve_turn()\n+\t\t\tcheck_zero(game, \"next turn HUD\")\n+\t\t\tgame.current_player = 1\n+\tgame.online_mode = false\n+\tgame.current_player = 1\n+\tgame.state_machine.transition(GameStateMachine.State.PLAYER_AIMING)\n+\tgame.augment_manager.acquire(game, 1, &\"triple_shot\")\n+\tvar triple: AugmentEffect\n+\tfor effect in game.augment_manager.effects[1]:\n+\t\tif effect.definition.id == &\"triple_shot\":\n+\t\t\ttriple = effect\n+\tif triple:\n+\t\ttriple.activate_immediate(game, 1)\n+\t\tgame.state_machine.transition(GameStateMachine.State.PLAYER_AIMING)\n+\t\tpointer = aim(game, 0.5)\n+\t\tgame.fire_selected(pointer)\n+\t\tcheck_zero(game, \"augmented launch\")\n+\t# Exercise client submission without sending an external GD-Sync packet.\n+\tgame.online_mode = true\n+\tgame.online_is_host = false\n+\tgame.current_player = 2\n+\tgame.local_player_id = 2\n+\tgame.state_machine.transition(GameStateMachine.State.PLAYER_AIMING)\n+\tpointer = aim(game, 0.62)\n+\tgame.fire_selected(pointer)\n+\tcheck_zero(game, \"client submission\")\n+\tvar snapshot: Dictionary = game.create_network_snapshot()\n+\tfor state in [GameStateMachine.State.PIECES_MOVING, GameStateMachine.State.PLAYER_AIMING]:\n+\t\tsnapshot[\"state\"] = int(state)\n+\t\tgame.apply_network_snapshot(snapshot)\n+\t\tcheck_zero(game, \"client approval or rejection snapshot\")\n+\tgame.build_hud()\n+\tcheck_zero(game, \"rebuilt HUD\")\n+\tgame.online_mode = false\n+\tgame.start_game()\n+\tcheck_zero(game, \"restart\")\n+\tgame.queue_free()\n+\tawait process_frame\n+\tif failures == 0:\n+\t\tprint(\"PASS: power zero on initialization, launch, cancel, augmented shot, client snapshots, rebuild and restart\")\n+\tquit(failures)\ntests/test_shot_power_reset.gd.uid\n@@ -0,0 +1 @@\n+uid://csxe8xg6jg5gh"
+      },
+      {
+        "id": "0b2f7cba2c8b3d9ff1418e2f8325ffef2a09963f",
+        "message": "author: peeta0126\nfeat: 타임프리즈 턴 넘기기 추가\nscripts/core/game_manager.gd\n@@ -64,6 +64,7 @@ var placement_drag_piece: AlkkagiPiece\n var placement_drag_origin := Vector2.ZERO\n var placement_drag_valid := false\n var active_skill: AugmentEffect\n+var turn_revision := 0\n var active_skill_player := 0\n var blizzard_turns := 0\n var blizzard_damp_multiplier := 1.0\n@@ -100,6 +101,7 @@ func _ready() -> void:\n \tGDSync.start_multiplayer()\n \tstate_machine = StateMachineScript.new()\n \tadd_child(state_machine)\n+\tstate_machine.state_changed.connect(func(_previous, _current): _refresh_pass_turn_hud())\n \taugment_manager = AugmentManagerScript.new()\n \tadd_child(augment_manager)\n \tnetwork_manager = NetworkManagerScript.new()\n@@ -483,6 +485,8 @@ func _refresh_augment_choices() -> void:\n func start_game_world(placement_only: bool = false) -> void:\n \tclear_world()\n \tgame_serial += 1\n+\t# A guest may previously have played more local turns than this host.\n+\tturn_revision = 0 if online_mode and not online_is_host else turn_revision + 1\n \tcurrent_player = 1\n \tsettle_time = 0.0\n \tshot_elapsed = 0.0\n@@ -649,6 +653,7 @@ func build_hud() -> void:\n \tvar game_hud := GameHudScene.instantiate() as GameHud\n \tgame_hud.menu_requested.connect(show_leave_dialog)\n \tgame_hud.active_skill_requested.connect(_on_hud_active_skill_requested)\n+\tgame_hud.pass_turn_requested.connect(_on_pass_turn_requested.bind(turn_revision, current_player))\n \tset_screen(game_hud)\n \thud = game_hud\n \tturn_label = game_hud.turn_label\n@@ -660,6 +665,7 @@ func build_hud() -> void:\n \t_add_augment_hud(2)\n \t_add_active_skill_hud()\n \t_add_passive_status_hud()\n+\t_refresh_pass_turn_hud()\n \tvar viewer := local_player_id if online_mode and local_player_id in [1, 2] else current_player\n \tif int(blind_turns[viewer]) > 0:\n \t\t_add_blind_overlay()\n@@ -720,6 +726,8 @@ func _add_blind_overlay() -> void:\n \t_update_blind_centers()\n \n func _activate_skill(effect: AugmentEffect) -> void:\n+\tif network_manager.pending_pass_sequence != 0:\n+\t\treturn\n \tvar can_use := effect.can_activate(self, current_player)\n \t_skill_debug(\"button pressed: augment=%s current_player=%d local_player=%d state=%s can_activate=%s\" % [effect.definition.id, current_player, local_player_id, GameStateMachine.State.keys()[state_machine.current], can_use])\n \tif not state_machine.allows_aiming():\n@@ -789,6 +797,54 @@ func _get_game_hud() -> GameHud:\n func _current_shot_profile() -> Dictionary:\n \treturn augment_manager.shot_profile(current_player)\n \n+# Status counters, unlike RigidBody.freeze, are authoritative on clients too.\n+func piece_can_launch(piece: AlkkagiPiece) -> bool:\n+\treturn is_instance_valid(piece) and piece.stasis_turns <= 0 and piece.snow_turns <= 0\n+\n+func turn_launch_block_reason(player_id: int) -> StringName:\n+\tvar found := false\n+\tfor piece in get_pieces():\n+\t\tif piece.owner_id != player_id:\n+\t\t\tcontinue\n+\t\tfound = true\n+\t\tif piece.stasis_turns <= 0:\n+\t\t\treturn &\"\"\n+\treturn &\"stasis\" if found else &\"\"\n+\n+func can_pass_turn(player_id: int) -> bool:\n+\treturn player_id in [1, 2] and current_player == player_id and state_machine.allows_aiming() and turn_launch_block_reason(player_id) == &\"stasis\" and count_owner(1) > 0 and count_owner(2) > 0 and not augment_manager.has_pending_action()\n+\n+func _refresh_pass_turn_hud() -> void:\n+\tvar game_hud := _get_game_hud()\n+\tif game_hud == null or state_machine == null:\n+\t\treturn\n+\tvar player_id := local_player_id if online_mode else current_player\n+\tvar pending: bool = network_manager != null and (network_manager.pending_pass_sequence != 0 or network_manager.pending_active_sequence != 0)\n+\tgame_hud.set_pass_turn_available(can_pass_turn(player_id) and not pending)\n+\tif is_instance_valid(selected_piece) and not piece_can_launch(selected_piece):\n+\t\tcancel_aim()\n+\tif turn_launch_block_reason(current_player) == &\"stasis\":\n+\t\tgame_hud.set_power_percent(0.0)\n+\n+func _on_pass_turn_requested(expected_revision: int, displayed_player: int) -> void:\n+\tvar player_id := local_player_id if online_mode else current_player\n+\tif expected_revision != turn_revision or displayed_player != player_id or not can_pass_turn(player_id):\n+\t\treturn\n+\tcancel_aim()\n+\tif online_mode:\n+\t\tnetwork_manager.submit_pass_turn(turn_revision)\n+\telse:\n+\t\texecute_pass_turn(player_id, turn_revision)\n+\t_refresh_pass_turn_hud()\n+\n+func execute_pass_turn(player_id: int, expected_revision: int) -> bool:\n+\tif (online_mode and not online_is_host) or expected_revision != turn_revision or not can_pass_turn(player_id):\n+\t\treturn false\n+\tcancel_aim()\n+\tshot_opponent_count_before = -1\n+\t_resolve_completed_action()\n+\treturn true\n+\n func _on_piece_pressed(piece: AlkkagiPiece) -> void:\n \tif state_machine.current == GameStateMachine.State.PIECE_PLACEMENT:\n \t\tvar editable_player := local_player_id if online_mode else placement_player\n@@ -811,6 +867,9 @@ func _on_piece_pressed(piece: AlkkagiPiece) -> void:\n \t\treturn\n \tif online_mode and current_player != local_player_id:\n \t\treturn\n+\tif not piece_can_launch(piece):\n+\t\tcancel_aim()\n+\t\treturn\n \tif selected_piece:\n \t\tselected_piece.set_selected(false)\n \tselected_piece = piece\n@@ -820,6 +879,9 @@ func _on_piece_pressed(piece: AlkkagiPiece) -> void:\n \tupdate_hud(\"ESC / 우클릭: 발사 취소\")\n \n func update_aim(pointer: Vector2) -> void:\n+\tif is_instance_valid(selected_piece) and not piece_can_launch(selected_piece):\n+\t\tcancel_aim()\n+\t\treturn\n \tif not dragging or not state_machine.allows_aiming() or not is_instance_valid(selected_piece):\n \t\treturn\n \tvar profile := _current_shot_profile()\n@@ -964,6 +1026,9 @@ func confirm_board_position_skill(board_position: Vector2) -> void:\n \t\tactive_skill.on_position_target(self, active_skill_player, board_position)\n \n func fire_selected(pointer: Vector2) -> void:\n+\tif is_instance_valid(selected_piece) and not piece_can_launch(selected_piece):\n+\t\tcancel_aim()\n+\t\treturn\n \tif not state_machine.allows_aiming() or selected_piece == null or not is_instance_valid(selected_piece):\n \t\tcancel_aim()\n \t\treturn\n@@ -1011,6 +1076,7 @@ func cancel_aim() -> void:\n \t\tgame_hud.set_power_percent(0.0)\n \n func _physics_process(delta: float) -> void:\n+\t_refresh_pass_turn_hud()\n \t_update_blind_centers()\n \tif state_machine == null or state_machine.current not in [GameStateMachine.State.PLAYER_AIMING, GameStateMachine.State.PIECES_MOVING]:\n \t\treturn\n@@ -1043,6 +1109,10 @@ func resolve_turn() -> void:\n \t# makes duplicate callbacks/RPC-driven attempts idempotent.\n \tif state_machine.current != GameStateMachine.State.PIECES_MOVING:\n \t\treturn\n+\t_resolve_completed_action()\n+\n+func _resolve_completed_action() -> void:\n+\tturn_revision += 1\n \tstate_machine.transition(GameStateMachine.State.TURN_RESOLUTION)\n \tvar resuming_train_event := train_followup_resolution\n \ttrain_followup_resolution = false\n@@ -1543,7 +1613,7 @@ func network_execute_shot(player_id: int, piece_id: int, pull_vector: Vector2) -\n \tif not online_is_host or state_machine.current != GameStateMachine.State.PLAYER_AIMING or current_player != player_id:\n \t\treturn\n \tvar piece := find_piece(piece_id)\n-\tif piece == null or piece.owner_id != player_id or piece.freeze:\n+\tif piece == null or piece.owner_id != player_id or piece.freeze or not piece_can_launch(piece):\n \t\treturn\n \tvar profile := augment_manager.shot_profile(player_id)\n \tvar max_drag := GameplayRules.BALANCE.drag_distance * float(profile.max_drag_multiplier)\n@@ -1586,6 +1656,7 @@ func create_network_snapshot() -> Dictionary:\n \t\t\teffect_states[player_id].append({\"id\": str(effect.definition.id), \"uses\": effect.uses_left, \"cooldown\": effect.cooldown_left, \"runtime\": effect.network_state()})\n \treturn {\n \t\t\"state\": int(state_machine.current),\n+\t\t\"turn_revision\": turn_revision,\n \t\t\"current_player\": current_player,\n \t\t\"winner\": network_winner,\n \t\t\"pieces\": piece_states,\n@@ -1604,6 +1675,10 @@ func create_network_snapshot() -> Dictionary:\n func apply_network_snapshot(snapshot: Dictionary, interpolation_duration: float = 0.05) -> void:\n \tif online_is_host or board == null:\n \t\treturn\n+\tif int(snapshot.get(\"turn_revision\", turn_revision)) < turn_revision:\n+\t\treturn\n+\tvar previous_revision := turn_revision\n+\tturn_revision = int(snapshot.get(\"turn_revision\", turn_revision))\n \tvar seen := {}\n \tvar piece_states: PackedFloat32Array = snapshot.get(\"pieces\", PackedFloat32Array())\n \tfor offset in range(0, piece_states.size(), 19):\n@@ -1658,7 +1733,7 @@ func apply_network_snapshot(snapshot: Dictionary, interpolation_duration: float\n \tif remote_state == GameStateMachine.State.PIECE_PLACEMENT:\n \t\t_update_placement_ui()\n \t\treturn\n-\tif previous_player != current_player or turn_label == null:\n+\tif previous_player != current_player or previous_revision != turn_revision or turn_label == null:\n \t\tbuild_hud()\n \tif bonus_turn_active:\n \t\tupdate_hud(\"피의 축제 발동 · 추가 발사 기회\")\n@@ -1763,6 +1838,7 @@ func _mode_status_text() -> String:\n \treturn \"새로고침 OFF · 혼돈 OFF\"\n \n func update_hud(hint: String) -> void:\n+\t_refresh_pass_turn_hud()\n \tvar game_hud := _get_game_hud()\n \tif game_hud == null:\n \t\treturn\nscripts/network/network_manager.gd\n@@ -11,7 +11,7 @@ const SNAPSHOT_REPEATS := 2\n const SNAPSHOT_IDLE_GAP := 0.3\n const ACTIVE_REQUEST_TIMEOUT := 8.0\n # v4 separates reliable world extras from throttled movement snapshots.\n-const PROTOCOL_VERSION := 5\n+const PROTOCOL_VERSION := 6\n const ROOM_PREFIX := \"AA-\"\n const ROOM_CODE_LENGTH := 6\n const ROOM_CREATE_ATTEMPTS := 5\n@@ -38,6 +38,8 @@ var pending_choices: Dictionary = {}\n var placement_completed: Dictionary = {1: false, 2: false}\n var last_sequences: Dictionary = {}\n var pending_active_sequence := 0\n+var pending_pass_sequence := 0\n+var pending_pass_seconds := 0.0\n var pending_active_seconds := 0.0\n var active_response_context := false\n var active_response_reason := \"\"\n@@ -70,6 +72,8 @@ func _ready() -> void:\n \tGDSync.disconnected.connect(_on_gdsync_disconnected)\n \tGDSync.expose_func(request_lobby_ready, ENUMS.EXPOSE_PERMISSION.CLIENT)\n \tGDSync.expose_func(request_shot, ENUMS.EXPOSE_PERMISSION.CLIENT)\n+\tGDSync.expose_func(request_pass_turn, ENUMS.EXPOSE_PERMISSION.CLIENT)\n+\tGDSync.expose_func(receive_pass_turn_result, ENUMS.EXPOSE_PERMISSION.HOST)\n \tGDSync.expose_func(request_augment_choice, ENUMS.EXPOSE_PERMISSION.CLIENT)\n \tGDSync.expose_func(request_augment_refresh, ENUMS.EXPOSE_PERMISSION.CLIENT)\n \tGDSync.expose_func(request_piece_placement, ENUMS.EXPOSE_PERMISSION.CLIENT)\n@@ -142,6 +146,7 @@ func _reset_lobby_state() -> void:\n \tlast_sequences.clear()\n \tactive_results.clear()\n \tpending_active_sequence = 0\n+\tpending_pass_sequence = 0\n \tlocal_sequence = 0\n \tpeer_to_player.clear()\n \tready_state = {1: false, 2: false}\n@@ -165,6 +170,7 @@ func shutdown(notify: bool = true) -> void:\n \tlast_sequences.clear()\n \tactive_results.clear()\n \tpending_active_sequence = 0\n+\tpending_pass_sequence = 0\n \tlocal_sequence = 0\n \tpeer_to_player = {1: 1}\n \tready_state = {1: false, 2: false}\n@@ -334,7 +340,7 @@ func submit_shot(piece_id: int, pull_vector: Vector2) -> void:\n \t\tGDSync.call_func_on(gdsync_host_id, request_shot, piece_id, pull_vector, local_sequence)\n \n func submit_active_skill(augment_id: StringName, target_ids: Array[int], board_position: Vector2 = Vector2.ZERO, targeting_option: int = 0) -> void:\n-\tif pending_active_sequence != 0:\n+\tif pending_active_sequence != 0 or pending_pass_sequence != 0:\n \t\treturn\n \tlocal_sequence += 1\n \tif is_host():\n@@ -359,6 +365,7 @@ func _tick_active_request(delta: float) -> void:\n \n func _process(delta: float) -> void:\n \t_tick_active_request(delta)\n+\t_tick_pass_request(delta)\n \tif not is_host() or not match_active or game().board == null:\n \t\treturn\n \tif game().state_machine.current in [GameStateMachine.State.INITIAL_AUGMENT_SELECTION, GameStateMachine.State.AUGMENT_SELECTION]:\n@@ -476,6 +483,61 @@ func request_shot(piece_id: int, pull_vector: Vector2, sequence: int) -> void:\n \tif _valid_sequence(sender, sequence, \"shot\"):\n \t\t_host_process_shot(_player_for_peer(sender), piece_id, pull_vector, sequence)\n \n+func submit_pass_turn(expected_revision: int) -> void:\n+\tif pending_pass_sequence != 0 or pending_active_sequence != 0 or not match_active:\n+\t\treturn\n+\tlocal_sequence += 1\n+\tif is_host():\n+\t\t_host_process_pass(1, expected_revision)\n+\telif mode == Mode.CLIENT:\n+\t\tpending_pass_sequence = local_sequence\n+\t\tpending_pass_seconds = 0.0\n+\t\tGDSync.call_func_on(gdsync_host_id, request_pass_turn, expected_revision, local_sequence)\n+\n+func request_pass_turn(expected_revision: int, sequence: int) -> void:\n+\tif not is_host():\n+\t\treturn\n+\tvar sender := _remote_sender_id()\n+\tvar player_id := _player_for_peer(sender)\n+\tif player_id != 2:\n+\t\treturn\n+\tvar accepted := false\n+\tif _valid_sequence(sender, sequence, \"pass turn\"):\n+\t\taccepted = _host_process_pass(player_id, expected_revision)\n+\t_send_pass_result(sender, sequence, accepted, game().create_network_snapshot())\n+\n+func _host_process_pass(player_id: int, expected_revision: int) -> bool:\n+\tif not is_host() or not match_active or player_id not in [1, 2]:\n+\t\treturn false\n+\treturn game().execute_pass_turn(player_id, expected_revision)\n+\n+func _send_pass_result(peer_id: int, sequence: int, accepted: bool, snapshot: Dictionary) -> void:\n+\tGDSync.call_func_on(peer_id, receive_pass_turn_result, sequence, accepted, snapshot)\n+\n+func receive_pass_turn_result(sequence: int, accepted: bool, snapshot: Dictionary) -> void:\n+\tif GDSync.get_sender_id() != gdsync_host_id:\n+\t\treturn\n+\t_apply_pass_result(sequence, accepted, snapshot)\n+\n+func _apply_pass_result(sequence: int, accepted: bool, snapshot: Dictionary) -> void:\n+\tif mode != Mode.CLIENT or pending_pass_sequence == 0 or sequence != pending_pass_sequence:\n+\t\treturn\n+\tpending_pass_sequence = 0\n+\tif not snapshot.is_empty() and int(snapshot.get(\"turn_revision\", game().turn_revision)) >= game().turn_revision:\n+\t\tgame().apply_network_extras(snapshot.get(\"effects\", {}), snapshot.get(\"walls\", PackedFloat32Array()))\n+\t\tgame().apply_network_snapshot(snapshot)\n+\tgame()._refresh_pass_turn_hud()\n+\tif not accepted:\n+\t\tgame().update_hud(\"턴 넘기기가 거절되었습니다. 현재 턴 상태를 확인하세요\")\n+\n+func _tick_pass_request(delta: float) -> void:\n+\tif pending_pass_sequence == 0:\n+\t\treturn\n+\tpending_pass_seconds += delta\n+\tif mode != Mode.CLIENT or not match_active or pending_pass_seconds >= ACTIVE_REQUEST_TIMEOUT:\n+\t\tpending_pass_sequence = 0\n+\t\tgame().update_hud(\"턴 넘기기 응답을 받지 못했습니다. 다시 시도하세요\")\n+\n func _host_process_shot(player_id: int, piece_id: int, pull_vector: Vector2, _sequence: int) -> void:\n \tif not is_host() or player_id == 0 or not match_active:\n \t\treturn\nscripts/ui/game_hud.gd\n@@ -3,6 +3,7 @@ extends Control\n \n signal menu_requested\n signal active_skill_requested(augment_id: StringName)\n+signal pass_turn_requested\n \n @onready var turn_label: Label = %TurnLabel\n @onready var count_label: Label = %CountLabel\n@@ -24,6 +25,8 @@ var _black_item_template: Label\n var _white_item_template: Label\n var _active_button_template: Button\n var _passive_status_template: Label\n+var pass_turn_panel: VBoxContainer\n+var pass_turn_button: Button\n \n \n func _ready() -> void:\n@@ -37,6 +40,39 @@ func _ready() -> void:\n \t# 오른쪽 열은 증강 → 패시브 상태 → 액티브 스킬 순으로 쌓는다.\n \tvar right_column := active_skills_panel.get_parent()\n \tright_column.move_child(passive_status_panel, active_skills_panel.get_index())\n+\tpass_turn_panel = VBoxContainer.new()\n+\tpass_turn_panel.visible = false\n+\tright_column.add_child(pass_turn_panel)\n+\tvar notice := Label.new()\n+\tnotice.text = \"모든 돌이 동결되어 발사할 수 없습니다\"\n+\tnotice.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART\n+\tnotice.add_theme_font_size_override(\"font_size\", 16)\n+\tnotice.add_theme_color_override(\"font_color\", InkStyle.ORANGE)\n+\tpass_turn_panel.add_child(notice)\n+\tpass_turn_button = Button.new()\n+\tpass_turn_button.text = \"턴 넘기기\"\n+\tpass_turn_button.custom_minimum_size.y = 46\n+\tInkStyle.style_button(pass_turn_button, 20)\n+\tpass_turn_button.pressed.connect(func(): pass_turn_requested.emit())\n+\tpass_turn_panel.add_child(pass_turn_button)\n+\t# Keep the action below skills even with many augments or a short viewport.\n+\tvar scroll := ScrollContainer.new()\n+\tscroll.name = \"RightColumnScroll\"\n+\tscroll.anchor_left = 1.0\n+\tscroll.anchor_right = 1.0\n+\tscroll.anchor_bottom = 1.0\n+\tscroll.offset_left = -330.0\n+\tscroll.offset_right = -18.0\n+\tscroll.offset_top = 108.0\n+\tscroll.offset_bottom = -20.0\n+\tscroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED\n+\tadd_child(scroll)\n+\tright_column.reparent(scroll)\n+\t(right_column as Control).size_flags_horizontal = Control.SIZE_EXPAND_FILL\n+\n+func set_pass_turn_available(available: bool) -> void:\n+\tif pass_turn_panel:\n+\t\tpass_turn_panel.visible = available\n \n \n ## 메인 화면과 같은 스타일: 숯색 판 + 황갈색 테두리 + 검정 외곽선, 글자는 크림색.\ntests/test_stasis_pass_turn.gd\n@@ -0,0 +1,174 @@\n+extends SceneTree\n+\n+var failures := 0\n+\n+func _init() -> void:\n+\tcall_deferred(\"run_test\")\n+\n+func check(ok: bool, message: String) -> void:\n+\tif not ok:\n+\t\tfailures += 1\n+\t\tpush_error(\"FAIL: \" + message)\n+\n+func owned_piece(game: Node, player: int) -> AlkkagiPiece:\n+\tfor piece in game.get_pieces():\n+\t\tif piece.owner_id == player:\n+\t\t\treturn piece\n+\treturn null\n+\n+func run_test() -> void:\n+\tvar host: Node = load(\"res://scenes/main.tscn\").instantiate()\n+\tvar guest: Node = load(\"res://scenes/main.tscn\").instantiate()\n+\troot.add_child(host)\n+\troot.add_child(guest)\n+\tawait process_frame\n+\tfor game in [host, guest]:\n+\t\tgame.start_game()\n+\t\tgame.set_physics_process(false)\n+\thost.augment_manager.acquire(host, 1, &\"stasis\")\n+\tvar stasis: AugmentEffect = host.augment_manager.effects[1][0]\n+\tstasis.begin_active(host, 1)\n+\tvar frozen := owned_piece(host, 1)\n+\tcheck(frozen.stasis_turns == 2 and frozen.freeze and frozen.invulnerable, \"activation freezes and protects allies for two owner cycles\")\n+\tvar attacker := owned_piece(host, 2)\n+\tvar defended_position := frozen.global_position\n+\tvar attack_origin := attacker.global_position\n+\tattacker.global_position = defended_position + Vector2(100, 0)\n+\tattacker.apply_launch_impulse(Vector2(-1000, 0))\n+\tfor frame in 30:\n+\t\tawait physics_frame\n+\tcheck(frozen.global_position.distance_to(defended_position) < 0.01, \"enemy impact does not move frozen defender\")\n+\tattacker.stop_motion()\n+\tattacker.global_position = attack_origin\n+\thost.resolve_turn()\n+\tcheck(host.current_player == 2 and frozen.stasis_turns == 2, \"activation turn preserves duration\")\n+\thost.state_machine.transition(GameStateMachine.State.PIECES_MOVING)\n+\thost.resolve_turn()\n+\tcheck(host.current_player == 1 and frozen.stasis_turns == 1, \"first owner return decrements once\")\n+\tcheck(host.hud.pass_turn_panel.visible, \"manual pass displayed on frozen owner turn\")\n+\tfor viewport_size in [Vector2i(1280, 720), Vector2i(960, 540), Vector2i(1600, 900)]:\n+\t\troot.size = viewport_size\n+\t\tawait process_frame\n+\t\tawait process_frame\n+\t\tvar hud: GameHud = host.hud\n+\t\tcheck(hud.pass_turn_panel.get_global_rect().position.y >= hud.active_skills_panel.get_global_rect().end.y or not hud.active_skills_panel.visible, \"pass does not overlap active panel after resize\")\n+\t\tvar scroll: ScrollContainer = hud.get_node(\"RightColumnScroll\")\n+\t\tcheck(scroll.get_global_rect().end.y <= hud.size.y, \"right action column stays within resized viewport\")\n+\thost._on_piece_pressed(frozen)\n+\thost.update_aim(frozen.position + Vector2(100, 0))\n+\thost.fire_selected(frozen.position + Vector2(100, 0))\n+\tcheck(not host.dragging and host.selected_piece == null and host.hud.power_bar.value == 0.0, \"frozen drag, launch and charge blocked\")\n+\t# A non-consuming targeted skill remains available, including cancellation.\n+\thost.augment_manager.acquire(host, 1, &\"gravity_field\")\n+\tvar gravity: AugmentEffect = host.augment_manager.effects[1][1]\n+\thost._activate_skill(gravity)\n+\tcheck(host.state_machine.current == GameStateMachine.State.SKILL_TARGETING and not host.hud.pass_turn_panel.visible, \"frozen player can target active; pass hidden during targeting\")\n+\thost.cancel_active_skill()\n+\tcheck(host.hud.pass_turn_panel.visible, \"cancel targeting restores pass\")\n+\thost._activate_skill(gravity)\n+\thost.confirm_board_position_skill(AlkkagiBoard.BOARD_RECT.get_center())\n+\tcheck(host.state_machine.allows_aiming() and host.hud.pass_turn_panel.visible and gravity.uses_left == 0, \"active application preserves manual pass\")\n+\tvar many_skills: Array[Dictionary] = []\n+\tfor index in 12:\n+\t\tmany_skills.append({\"id\": \"gravity_field\", \"text\": \"스킬 %d\" % index})\n+\thost.hud.set_active_skills(many_skills)\n+\tawait process_frame\n+\tawait process_frame\n+\tcheck(host.hud.pass_turn_panel.get_global_rect().position.y >= host.hud.active_skills_panel.get_global_rect().end.y, \"long skill list keeps pass below skills\")\n+\tvar action_scroll: ScrollContainer = host.hud.get_node(\"RightColumnScroll\")\n+\tcheck(action_scroll.get_v_scroll_bar().max_value > action_scroll.size.y, \"overflow action list is scrollable\")\n+\tvar moving_states: Array = []\n+\thost.state_machine.state_changed.connect(func(_old, state): moving_states.append(state))\n+\tvar revision: int = host.turn_revision\n+\tvar ended: int = host.augment_manager.completed_turns[1]\n+\thost.hud.pass_turn_button.pressed.emit()\n+\tcheck(host.current_player == 2 and host.augment_manager.completed_turns[1] == ended + 1, \"button completes normal turn accounting\")\n+\tcheck(not GameStateMachine.State.PIECES_MOVING in moving_states, \"pass starts no shot physics\")\n+\tcheck(not host.execute_pass_turn(1, revision), \"duplicate old pass rejected\")\n+\tcheck(frozen.stasis_turns == 1 and frozen.freeze, \"manual pass does not prematurely thaw\")\n+\thost.state_machine.transition(GameStateMachine.State.PIECES_MOVING)\n+\thost.resolve_turn()\n+\tcheck(frozen.stasis_turns == 0 and not frozen.freeze and not frozen.invulnerable, \"second owner return restores physical state\")\n+\thost._on_piece_pressed(frozen)\n+\tcheck(host.dragging, \"thawed piece can aim again\")\n+\thost.cancel_aim()\n+\tcheck(not host.hud.pass_turn_panel.visible, \"thaw hides button\")\n+\t# Two instances exercise authenticated RPC dispatch and replicated status.\n+\tvar net: Node = load(\"res://tests/pass_turn_network_stub.gd\").new()\n+\thost.add_child(net)\n+\tnet.mode = net.Mode.HOST\n+\tnet.match_active = true\n+\tnet.peer_to_player = {22: 2}\n+\thost.online_mode = true\n+\thost.online_is_host = true\n+\thost.local_player_id = 1\n+\thost.current_player = 2\n+\thost.state_machine.transition(GameStateMachine.State.PLAYER_AIMING)\n+\tfor piece in host.get_pieces():\n+\t\tpiece.set_stasis(2)\n+\t\tpiece.stasis_cycle_based = true\n+\tguest.online_mode = true\n+\tguest.online_is_host = false\n+\tguest.local_player_id = 2\n+\tguest.turn_revision = 999\n+\tguest.start_game_world()\n+\tcheck(guest.turn_revision == 0, \"new online world clears guest's previous local turn counter\")\n+\tvar old_snapshot: Dictionary = host.create_network_snapshot()\n+\tguest.apply_network_snapshot(host.create_network_snapshot())\n+\tcheck(guest.hud.pass_turn_panel.visible, \"guest sees own frozen turn\")\n+\tguest._on_piece_pressed(owned_piece(guest, 2))\n+\tcheck(not guest.dragging and guest.hud.power_bar.value == 0.0, \"guest cannot aim snapshot-frozen body\")\n+\trevision = host.turn_revision\n+\thost.network_execute_shot(2, owned_piece(host, 2).piece_id, Vector2(80, 0))\n+\tcheck(host.state_machine.allows_aiming(), \"server rejects frozen shot\")\n+\tnet.request_pass_turn(revision, 1)\n+\tcheck(net.reply.accepted and host.current_player == 1, \"host accepts guest pass\")\n+\tvar client: Node = guest.network_manager\n+\tclient.mode = client.Mode.CLIENT\n+\tclient.match_active = true\n+\tclient.pending_pass_sequence = 1\n+\tclient._apply_pass_result(1, net.reply.accepted, net.reply.snapshot)\n+\tcheck(guest.current_player == host.current_player and guest.turn_revision == host.turn_revision and not guest.hud.pass_turn_panel.visible, \"response synchronizes turn and hides guest button\")\n+\tguest.apply_network_snapshot(old_snapshot)\n+\tcheck(guest.current_player == host.current_player and guest.turn_revision == host.turn_revision, \"late old-turn snapshot cannot undo pass\")\n+\tvar after: int = host.turn_revision\n+\tnet.request_pass_turn(revision, 1)\n+\tcheck(not net.reply.accepted and host.turn_revision == after, \"duplicate sequence cannot end another turn\")\n+\tnet.request_pass_turn(after, 2)\n+\tcheck(not net.reply.accepted, \"opponent request rejected\")\n+\tcheck(net._host_process_pass(1, after), \"host can manually pass with both sides frozen\")\n+\tcheck(host.current_player == 2 and host.turn_revision == after + 1, \"both frozen cause one explicit transition only\")\n+\tnet.request_pass_turn(revision, 3)\n+\tcheck(not net.reply.accepted, \"old turn token rejected on same player's later turn\")\n+\tnet.sender = 99\n+\tnet.request_pass_turn(host.turn_revision, 4)\n+\tcheck(host.current_player == 2, \"unknown peer cannot mutate turn\")\n+\tguest.apply_network_snapshot(host.create_network_snapshot())\n+\tclient.pending_pass_sequence = 5\n+\tguest._refresh_pass_turn_hud()\n+\tcheck(not guest.hud.pass_turn_panel.visible, \"pending request suppresses repeated clicks\")\n+\tclient._tick_pass_request(client.ACTIVE_REQUEST_TIMEOUT + 0.1)\n+\tcheck(client.pending_pass_sequence == 0 and guest.hud.pass_turn_panel.visible, \"timeout unlocks retry\")\n+\tclient.pending_pass_sequence = 6\n+\tclient._apply_pass_result(5, true, net.reply.snapshot)\n+\tcheck(client.pending_pass_sequence == 6, \"late response cannot complete newer request\")\n+\tclient._apply_pass_result(6, false, host.create_network_snapshot())\n+\tcheck(client.pending_pass_sequence == 0 and guest.hud.pass_turn_panel.visible, \"rejection unlocks retry\")\n+\tfor state in [GameStateMachine.State.PIECES_MOVING, GameStateMachine.State.AUGMENT_SELECTION, GameStateMachine.State.TURN_RESOLUTION, GameStateMachine.State.PIECE_PLACEMENT, GameStateMachine.State.GAME_OVER]:\n+\t\thost.state_machine.transition(state)\n+\t\tcheck(not host.can_pass_turn(2), \"pass denied outside action selection\")\n+\thost.state_machine.transition(GameStateMachine.State.PLAYER_AIMING)\n+\towned_piece(host, 2).clear_temporary_status()\n+\tcheck(not host.can_pass_turn(2), \"one launchable piece suppresses pass\")\n+\tfor piece in host.get_pieces():\n+\t\tif piece.owner_id == 2:\n+\t\t\tpiece.queue_free()\n+\tcheck(not host.can_pass_turn(2), \"empty army never qualifies as frozen\")\n+\tclient.mode = client.Mode.OFFLINE\n+\tnet.mode = net.Mode.OFFLINE\n+\thost.queue_free()\n+\tguest.queue_free()\n+\tawait process_frame\n+\tif failures == 0:\n+\t\tprint(\"PASS: stasis manual pass, actives, duration/thaw, authority, replication, duplicate/stale/timeout/rejection and phase guards\")\n+\tquit(failures)\ntests/test_stasis_pass_turn.gd.uid\n@@ -0,0 +1 @@\n+uid://dc4nq26nyj5dv"
+      }
+    ],
+    "prs": [],
+    "tree": [
+      "README.md",
+      "project.godot",
+      "docs/GAME_DESIGN.md",
+      "docs/AUGMENT_DESIGN.md",
+      "docs/NETWORK_ARCHITECTURE.md",
+      "docs/TEST_REPORT.md",
+      "docs/ROADMAP.md",
+      "scripts/augments/augment_manager.gd",
+      "scripts/core/game_manager.gd",
+      "scripts/network/network_manager.gd",
+      "tests/test_shot_power_reset.gd",
+      "tests/test_client_active_skill.gd",
+      "tests/test_stasis_pass_turn.gd"
+    ]
+  },
+  "generated": {
+    "title": "증강 알까기",
+    "subtitle": "증강 선택과 호스트 권위 동기화를 결합한 물리 기반 대전 게임",
+    "description": "돌을 밀어 상대 돌을 보드 밖으로 보내는 물리 알까기에 증강 선택을 연결한 대전 게임입니다. 같은 조작 규칙 안에서 돌의 특성·발사 방식·필드 조건을 바꾸며 서로 다른 전략을 구성할 수 있고, 로컬 대전과 온라인 대전에 같은 경기 규칙을 적용합니다.",
+    "projectType": "물리 기반 대전 게임",
+    "tech": [
+      "Godot",
+      "GDScript",
+      "GD-Sync",
+      "RigidBody2D"
+    ],
+    "overview": "증강 알까기는 한 번의 발사 결과를 읽는 물리 조작과, 라운드마다 달라지는 선택을 함께 다루는 게임입니다. 증강은 단순한 수치 보너스에 머물지 않고 돌의 변신, 발사 변환, 시야 제한, 임시 벽과 특수 승리 조건으로 플레이 방식을 바꿉니다. 온라인에서도 참가자가 각자 결과를 계산하는 대신 호스트가 경기 결과를 확정하고, 참가자는 조작을 요청하고 확정된 상태를 받아 표시하는 구조를 사용합니다.",
+    "features": [
+      "물리 기반 턴제 대전 — 조준과 발사 뒤 모든 돌의 이동과 탈락 판정을 해소한 다음 차례를 넘겨, 입력과 결과 판정의 경계를 분명하게 나눕니다.",
+      "라운드 기반 증강 선택 — 시작 전과 공동 라운드의 선택 단계를 구분하고, 양쪽 선택이 끝나기 전에는 다음 행동으로 넘어가지 않도록 경기 흐름에 연결합니다.",
+      "서로 조합되는 증강 — 돌의 물리 특성, 발사 방식, 충돌 반응과 필드를 개별 효과로 나누고, 처리 순서를 정해 획득 순서가 조합 결과를 바꾸지 않도록 구성했습니다.",
+      "로컬·온라인 대전 — 로컬에서는 한 화면에서 번갈아 조작하고, 온라인에서는 GD-Sync 방과 준비 과정을 거쳐 호스트 검증 아래 같은 경기 규칙을 적용합니다.",
+      "경기 상태와 조작 UI의 분리 — 참가자의 대상 선택, 발사력 표시, 동결 차례 넘기기를 경기 상태와 연결하되 늦게 도착한 동기화가 진행 중인 입력을 무조건 덮지 않게 처리합니다."
+    ],
+    "implementation": [
+      "증강 정의와 실행 효과를 분리하고 발사 전·충돌·이동 정지·턴 종료 같은 공통 시점에 개별 Effect를 호출합니다. 이 구조에서는 경기 전체 흐름과 증강별 동작을 구분해 다루며 여러 증강이 같은 처리 시점에 참여할 수 있습니다.",
+      "물리 해소와 라운드 보상을 분리했습니다. 양쪽이 정상 행동을 마쳤는지 확인하고, 승패가 결정된 뒤에는 다음 증강 선택을 열지 않도록 턴 완료 경계를 관리합니다.",
+      "온라인 참가자의 입력을 결과 변경과 구분했습니다. 스킬 대상과 요청 순서는 호스트에서 검증하고, 승인·거절 응답과 확정 스냅샷을 받은 뒤 참가자 상태를 정리합니다.",
+      "매번 전체 상태를 보내는 대신 이동 중심 상태와 증강·벽 같은 부가 상태를 나눴습니다. 변화가 없을 때 전송을 쉬되 heartbeat와 종료 시 캐시 초기화로 유휴·재접속 경로도 다룹니다.",
+      "지연이나 취소가 UI를 오래된 상태로 되돌리는 경로를 회귀 테스트로 분리했습니다. 대상 선택 보존, 파워 초기화, 동결 차례 넘기기를 각각 재현하는 테스트를 두어 경기 규칙과 화면 상태를 함께 확인할 수 있게 했습니다."
+    ],
+    "architecture": "GameManager가 경기 진행과 상태 전환을 조율하고, AugmentManager는 정의 Resource와 개별 Effect를 연결해 소유·사용·발동을 관리합니다. 돌의 이동과 충돌은 물리 오브젝트가 맡고 UI는 선택과 조작을 전달합니다. 온라인 경계에서는 NetworkManager가 참가자 입력을 검증할 호스트로 전달하며, 경기 결과와 부가 상태를 스냅샷으로 돌려보냅니다. 참가자는 확정 상태를 보간해 표시하면서 아직 확정되지 않은 로컬 대상 선택은 별도로 유지합니다.",
+    "considerations": [],
+    "troubleshooting": [
+      {
+        "title": "호스트 스냅샷과 참가자 타깃 선택의 상태 충돌 분리",
+        "problem": "참가자가 스킬 대상을 고르는 동안 호스트는 아직 조준 상태에 있습니다. 이 값을 참가자 화면에 그대로 적용하면 진행 중인 대상 선택이 취소될 수 있는 상태 충돌이 있었습니다.",
+        "solution": "참가자의 로컬 타깃 선택과 호스트가 확정하는 경기 상태를 구분했습니다. 자기 차례의 대상 선택 중에는 호스트의 조준 상태로 되돌리지 않고, 요청 순서와 승인 결과를 확인한 뒤 효과와 턴을 반영하도록 변경했습니다.",
+        "result": "선택 상태 보존 분기와 호스트 스냅샷을 주입하는 회귀 테스트를 추가했습니다. 동기화로 갱신할 경기 상태와 참가자에게 유지할 입력 상태를 구분하는 구조가 코드에 반영되어 있습니다.",
+        "evidence": [
+          "ed2086c42a8977a2fb554fe0c70168838dcb41a2",
+          "scripts/core/game_manager.gd",
+          "tests/test_client_active_skill.gd"
+        ]
+      },
+      {
+        "title": "발사력 표시와 실제 입력 상태의 생명주기 맞추기",
+        "problem": "발사력 표시의 초기값과 조준 취소·발사 후 상태가 따로 관리되면, 실제 입력이 끝났어도 이전 드래그 값이 화면에 남을 수 있었습니다.",
+        "solution": "HUD 초기값을 정리하고 발사·취소·HUD 재생성·참가자 스냅샷 경로에서 같은 초기 상태로 돌아가도록 수정했습니다. 일반 발사뿐 아니라 증강 발사와 재시작 경로까지 검사 대상으로 넓혔습니다.",
+        "result": "게이지 값·표시 문자열·채움 패널을 함께 검사하는 회귀 테스트를 추가했습니다. 발사 종료뿐 아니라 취소·스냅샷 적용·재시작을 포함해 화면 표시와 입력 상태가 어긋날 수 있는 경로를 구체적으로 점검하도록 구성했습니다.",
+        "evidence": [
+          "989b60c08816f7dacaa370e9e651aa43bf6684d5",
+          "tests/test_shot_power_reset.gd"
+        ]
+      },
+      {
+        "title": "동결 상태의 턴 진행과 늦게 도착한 요청 구분",
+        "problem": "자기 돌이 모두 동결되면 발사할 수 없으므로 턴을 끝내는 별도 경로가 필요합니다. 온라인에서는 중복 요청이나 이전 턴의 응답이 다음 차례를 바꾸지 않도록 처리해야 했습니다.",
+        "solution": "발사 불가 사유와 현재 차례를 확인한 경우에만 넘기기를 허용하고, 호스트가 턴 revision과 요청 순서를 검증하도록 연결했습니다. 참가자는 요청이 진행 중일 때 추가 입력을 막고 과거 revision의 스냅샷은 적용하지 않습니다.",
+        "result": "동결 해제 시점, 중복·과거 요청 거절, 지연 응답, 타임아웃 후 재시도를 검사하는 회귀 테스트를 추가했습니다. 턴을 넘기는 정상 경로와 이전 차례의 요청을 거부하는 경로를 함께 점검하도록 구성했습니다.",
+        "evidence": [
+          "0b2f7cba2c8b3d9ff1418e2f8325ffef2a09963f",
+          "scripts/core/game_manager.gd",
+          "tests/test_stasis_pass_turn.gd"
+        ]
+      }
+    ],
+    "evidence": [
+      {
+        "claim": "물리 알까기에 로컬·온라인 대전과 증강 선택을 연결한 게임",
+        "sources": [
+          "README.md"
+        ]
+      },
+      {
+        "claim": "증강 정의 Resource와 동작 Effect를 분리하고 플레이어별 사용·쿨다운을 관리한다",
+        "sources": [
+          "docs/AUGMENT_DESIGN.md"
+        ]
+      },
+      {
+        "claim": "공동 라운드 완료와 양쪽 선택 완료를 구분해 다음 행동으로 넘어간다",
+        "sources": [
+          "docs/GAME_DESIGN.md"
+        ]
+      },
+      {
+        "claim": "호스트가 규칙·난수·물리·승패를 확정하고 참가자는 입력을 요청한다",
+        "sources": [
+          "docs/NETWORK_ARCHITECTURE.md"
+        ]
+      },
+      {
+        "claim": "변화 기반 빠른 상태와 신뢰성 있는 부가 상태를 분리한다",
+        "sources": [
+          "docs/NETWORK_ARCHITECTURE.md"
+        ]
+      },
+      {
+        "claim": "증강 조합 결과가 획득 순서에 종속되지 않도록 효과 순서를 명세했다",
+        "sources": [
+          "docs/AUGMENT_DESIGN.md"
+        ]
+      },
+      {
+        "claim": "증강의 발사 전·충돌·정지·턴 종료 후크를 관리한다",
+        "sources": [
+          "scripts/augments/augment_manager.gd"
+        ]
+      },
+      {
+        "claim": "참가자의 로컬 타깃 선택 중 호스트의 조준 상태가 도착해도 선택을 유지한다",
+        "sources": [
+          "scripts/core/game_manager.gd"
+        ]
+      },
+      {
+        "claim": "호스트 스냅샷을 적용해도 스킬 대상 선택이 유지되는지 검사하는 테스트가 있다",
+        "sources": [
+          "tests/test_client_active_skill.gd"
+        ]
+      },
+      {
+        "claim": "발사·취소·재시작·참가자 스냅샷 뒤 파워 표시 초기화 회귀 테스트가 있다",
+        "sources": [
+          "tests/test_shot_power_reset.gd"
+        ]
+      },
+      {
+        "claim": "동결로 발사 불가한 차례에는 턴 revision을 검증해 넘기고 오래된 스냅샷을 무시한다",
+        "sources": [
+          "scripts/core/game_manager.gd"
+        ]
+      },
+      {
+        "claim": "중복·과거 턴·지연 응답·미인증 참가자의 넘기기 요청을 검사하는 회귀 테스트가 있다",
+        "sources": [
+          "tests/test_stasis_pass_turn.gd"
+        ]
+      },
+      {
+        "claim": "과거 프로토콜 검증 보고서는 같은 PC의 두 프로세스로 확인했으며 분리된 두 PC의 재검증은 남았다",
+        "sources": [
+          "docs/TEST_REPORT.md"
+        ]
+      },
+      {
+        "claim": "실제 플레이 밸런스 점검과 배포 방식 결정은 로드맵의 남은 과제다",
+        "sources": [
+          "docs/ROADMAP.md"
+        ]
+      },
+      {
+        "claim": "UI·온라인 스킬·발사력 초기화를 함께 수정한 실제 변경이 있다",
+        "sources": [
+          "989b60c08816f7dacaa370e9e651aa43bf6684d5"
+        ]
+      },
+      {
+        "claim": "참가자의 스킬 대상 선택과 스냅샷 상태 충돌을 수정하고 회귀 테스트를 추가했다",
+        "sources": [
+          "ed2086c42a8977a2fb554fe0c70168838dcb41a2"
+        ]
+      },
+      {
+        "claim": "동결 차례 넘기기와 턴 revision 검증을 추가한 실제 변경이 있다",
+        "sources": [
+          "0b2f7cba2c8b3d9ff1418e2f8325ffef2a09963f"
+        ]
+      },
+      {
+        "claim": "peeta0126 계정의 세 커밋에서 온라인 스킬·UI 상태·턴 넘기기 변경을 확인했다",
+        "sources": [
+          "989b60c08816f7dacaa370e9e651aa43bf6684d5",
+          "989b60c08816f7dacaa370e9e651aa43bf6684d5",
+          "0b2f7cba2c8b3d9ff1418e2f8325ffef2a09963f",
+          "ed2086c42a8977a2fb554fe0c70168838dcb41a2"
+        ]
+      }
+    ],
+    "reviewNotes": [
+      "개발 시작·종료일과 개인/팀 프로젝트 표기는 관리자 확인 필요. Git 활동 시점을 개발 기간으로 대신하지 않음.",
+      "여러 기여자와 팀 문서는 확인되지만 전체 기능의 개인 기여도와 팀 내 역할은 별도 확인 필요.",
+      "개인 개발 동기와 회고는 확인되지 않음.",
+      "문서의 네트워크 설명은 v4, 최신 코드 PROTOCOL_VERSION은 6. 최신 버전의 실서비스 통합 검증은 확인되지 않음.",
+      "이번 조사에서는 Godot 테스트를 실행하지 않았음. 테스트 코드의 단언과 과거 보고서만 확인함.",
+      "실제 게임 스크린샷은 확인되지 않아 업로드 대기. 저장소 로고·아이콘을 플레이 화면으로 취급하지 않음.",
+      "기술 사실과 문장 간 의미·기여도는 관리자 검토가 필요합니다. 승인 전에는 게시하지 않습니다.",
+      "회고는 확인용 초안입니다. 개발자 확인 후 프로젝트 편집에서 직접 반영하세요."
+    ],
+    "portfolio": {
+      "background": "",
+      "goal": "",
+      "roleSummary": "Git 기록에서 peeta0126 계정의 온라인 스킬 처리, 발사력 표시 초기화와 UI 상태 수정, 동결 차례 넘기기 및 관련 테스트 추가를 확인했습니다. 팀 전체의 증강 기획·리소스 제작·모든 기능을 개인 담당 범위로 확장하지 않았습니다.",
+      "responsibilities": [],
+      "architectureLayers": [
+        {
+          "name": "입력·UI",
+          "items": [
+            "조준·대상 선택",
+            "증강 카드·HUD"
+          ]
+        },
+        {
+          "name": "경기·증강",
+          "items": [
+            "GameManager / 상태 전환",
+            "Resource / Effect"
+          ]
+        },
+        {
+          "name": "온라인 경계",
+          "items": [
+            "호스트 입력 검증",
+            "확정 상태·부가 상태 전달"
+          ]
+        },
+        {
+          "name": "물리·표시",
+          "items": [
+            "돌 이동·충돌",
+            "참가자 보간·로컬 선택 보존"
+          ]
+        }
+      ],
+      "userFlow": [],
+      "result": "로컬 대전의 물리 규칙과 증강 선택을 온라인 호스트 검증 구조에 연결했습니다. 개별 효과를 추가하는 구조뿐 아니라 조합·턴 완료·참가자 입력·취소를 다루는 회귀 테스트 코드도 갖췄습니다. 다만 최신 버전의 실제 서비스 검증, 서로 다른 기기의 플레이 세션, 밸런스와 배포 방식은 확인하거나 보완할 과제로 남아 있습니다.",
+      "limitations": [
+        "최신 네트워크 코드와 과거 검증 문서의 버전 차이를 확인하고 별도 기기 환경에서 통합 검증이 필요합니다.",
+        "실제 플레이를 통한 증강 밸런스 점검과 배포 방식 확정이 남아 있습니다."
+      ],
+      "retrospectiveDraft": "확인용 회고 제안: 참가자만 알고 있는 입력 상태와 호스트가 확정하는 경기 상태를 나누면서 어떤 판단 기준을 얻었는지, 턴 완료 경계와 회귀 테스트를 다음 프로젝트에 어떻게 적용하고 싶은지 본인의 경험으로 확인해 주세요."
+    },
+    "fieldEvidence": [
+      {
+        "field": "title",
+        "factIds": [
+          "game",
+          "augments",
+          "rounds",
+          "authority",
+          "traffic",
+          "interactions",
+          "effects",
+          "targeting",
+          "pass",
+          "limits",
+          "verified-scope"
+        ]
+      },
+      {
+        "field": "subtitle",
+        "factIds": [
+          "game",
+          "augments",
+          "rounds",
+          "authority",
+          "traffic",
+          "interactions",
+          "effects",
+          "targeting",
+          "pass",
+          "limits",
+          "verified-scope"
+        ]
+      },
+      {
+        "field": "description",
+        "factIds": [
+          "game",
+          "augments",
+          "rounds",
+          "authority",
+          "traffic",
+          "interactions",
+          "effects",
+          "targeting",
+          "pass",
+          "limits",
+          "verified-scope"
+        ]
+      },
+      {
+        "field": "projectType",
+        "factIds": [
+          "game",
+          "augments",
+          "rounds",
+          "authority",
+          "traffic",
+          "interactions",
+          "effects",
+          "targeting",
+          "pass",
+          "limits",
+          "verified-scope"
+        ]
+      },
+      {
+        "field": "tech.0",
+        "factIds": [
+          "game",
+          "augments",
+          "rounds",
+          "authority",
+          "traffic",
+          "interactions",
+          "effects",
+          "targeting",
+          "pass",
+          "limits",
+          "verified-scope"
+        ]
+      },
+      {
+        "field": "tech.1",
+        "factIds": [
+          "game",
+          "augments",
+          "rounds",
+          "authority",
+          "traffic",
+          "interactions",
+          "effects",
+          "targeting",
+          "pass",
+          "limits",
+          "verified-scope"
+        ]
+      },
+      {
+        "field": "tech.2",
+        "factIds": [
+          "game",
+          "augments",
+          "rounds",
+          "authority",
+          "traffic",
+          "interactions",
+          "effects",
+          "targeting",
+          "pass",
+          "limits",
+          "verified-scope"
+        ]
+      },
+      {
+        "field": "tech.3",
+        "factIds": [
+          "game",
+          "augments",
+          "rounds",
+          "authority",
+          "traffic",
+          "interactions",
+          "effects",
+          "targeting",
+          "pass",
+          "limits",
+          "verified-scope"
+        ]
+      },
+      {
+        "field": "overview",
+        "factIds": [
+          "game",
+          "augments",
+          "rounds",
+          "authority",
+          "traffic",
+          "interactions",
+          "effects",
+          "targeting",
+          "pass",
+          "limits",
+          "verified-scope"
+        ]
+      },
+      {
+        "field": "features.0",
+        "factIds": [
+          "game",
+          "augments",
+          "rounds",
+          "authority",
+          "traffic",
+          "interactions",
+          "effects",
+          "targeting",
+          "pass",
+          "limits",
+          "verified-scope"
+        ]
+      },
+      {
+        "field": "features.1",
+        "factIds": [
+          "game",
+          "augments",
+          "rounds",
+          "authority",
+          "traffic",
+          "interactions",
+          "effects",
+          "targeting",
+          "pass",
+          "limits",
+          "verified-scope"
+        ]
+      },
+      {
+        "field": "features.2",
+        "factIds": [
+          "game",
+          "augments",
+          "rounds",
+          "authority",
+          "traffic",
+          "interactions",
+          "effects",
+          "targeting",
+          "pass",
+          "limits",
+          "verified-scope"
+        ]
+      },
+      {
+        "field": "features.3",
+        "factIds": [
+          "game",
+          "augments",
+          "rounds",
+          "authority",
+          "traffic",
+          "interactions",
+          "effects",
+          "targeting",
+          "pass",
+          "limits",
+          "verified-scope"
+        ]
+      },
+      {
+        "field": "features.4",
+        "factIds": [
+          "game",
+          "augments",
+          "rounds",
+          "authority",
+          "traffic",
+          "interactions",
+          "effects",
+          "targeting",
+          "pass",
+          "limits",
+          "verified-scope"
+        ]
+      },
+      {
+        "field": "implementation.0",
+        "factIds": [
+          "game",
+          "augments",
+          "rounds",
+          "authority",
+          "traffic",
+          "interactions",
+          "effects",
+          "targeting",
+          "pass",
+          "limits",
+          "verified-scope"
+        ]
+      },
+      {
+        "field": "implementation.1",
+        "factIds": [
+          "game",
+          "augments",
+          "rounds",
+          "authority",
+          "traffic",
+          "interactions",
+          "effects",
+          "targeting",
+          "pass",
+          "limits",
+          "verified-scope"
+        ]
+      },
+      {
+        "field": "implementation.2",
+        "factIds": [
+          "game",
+          "augments",
+          "rounds",
+          "authority",
+          "traffic",
+          "interactions",
+          "effects",
+          "targeting",
+          "pass",
+          "limits",
+          "verified-scope"
+        ]
+      },
+      {
+        "field": "implementation.3",
+        "factIds": [
+          "game",
+          "augments",
+          "rounds",
+          "authority",
+          "traffic",
+          "interactions",
+          "effects",
+          "targeting",
+          "pass",
+          "limits",
+          "verified-scope"
+        ]
+      },
+      {
+        "field": "implementation.4",
+        "factIds": [
+          "game",
+          "augments",
+          "rounds",
+          "authority",
+          "traffic",
+          "interactions",
+          "effects",
+          "targeting",
+          "pass",
+          "limits",
+          "verified-scope"
+        ]
+      },
+      {
+        "field": "architecture",
+        "factIds": [
+          "game",
+          "augments",
+          "rounds",
+          "authority",
+          "traffic",
+          "interactions",
+          "effects",
+          "targeting",
+          "pass",
+          "limits",
+          "verified-scope"
+        ]
+      },
+      {
+        "field": "troubleshooting.0.title",
+        "factIds": [
+          "history-target",
+          "targeting",
+          "targeting-test"
+        ]
+      },
+      {
+        "field": "troubleshooting.0.problem",
+        "factIds": [
+          "history-target",
+          "targeting",
+          "targeting-test"
+        ]
+      },
+      {
+        "field": "troubleshooting.0.solution",
+        "factIds": [
+          "history-target",
+          "targeting",
+          "targeting-test"
+        ]
+      },
+      {
+        "field": "troubleshooting.0.result",
+        "factIds": [
+          "history-target",
+          "targeting",
+          "targeting-test"
+        ]
+      },
+      {
+        "field": "troubleshooting.1.title",
+        "factIds": [
+          "history-ui",
+          "power-test"
+        ]
+      },
+      {
+        "field": "troubleshooting.1.problem",
+        "factIds": [
+          "history-ui",
+          "power-test"
+        ]
+      },
+      {
+        "field": "troubleshooting.1.solution",
+        "factIds": [
+          "history-ui",
+          "power-test"
+        ]
+      },
+      {
+        "field": "troubleshooting.1.result",
+        "factIds": [
+          "history-ui",
+          "power-test"
+        ]
+      },
+      {
+        "field": "troubleshooting.2.title",
+        "factIds": [
+          "history-pass",
+          "pass",
+          "pass-test"
+        ]
+      },
+      {
+        "field": "troubleshooting.2.problem",
+        "factIds": [
+          "history-pass",
+          "pass",
+          "pass-test"
+        ]
+      },
+      {
+        "field": "troubleshooting.2.solution",
+        "factIds": [
+          "history-pass",
+          "pass",
+          "pass-test"
+        ]
+      },
+      {
+        "field": "troubleshooting.2.result",
+        "factIds": [
+          "history-pass",
+          "pass",
+          "pass-test"
+        ]
+      },
+      {
+        "field": "portfolio.roleSummary",
+        "factIds": [
+          "contribution",
+          "history-target",
+          "history-ui",
+          "history-pass"
+        ]
+      },
+      {
+        "field": "portfolio.architectureLayers.0.name",
+        "factIds": [
+          "game",
+          "augments",
+          "rounds",
+          "authority",
+          "traffic",
+          "interactions",
+          "effects",
+          "targeting",
+          "pass",
+          "limits",
+          "verified-scope"
+        ]
+      },
+      {
+        "field": "portfolio.architectureLayers.0.items.0",
+        "factIds": [
+          "game",
+          "augments",
+          "rounds",
+          "authority",
+          "traffic",
+          "interactions",
+          "effects",
+          "targeting",
+          "pass",
+          "limits",
+          "verified-scope"
+        ]
+      },
+      {
+        "field": "portfolio.architectureLayers.0.items.1",
+        "factIds": [
+          "game",
+          "augments",
+          "rounds",
+          "authority",
+          "traffic",
+          "interactions",
+          "effects",
+          "targeting",
+          "pass",
+          "limits",
+          "verified-scope"
+        ]
+      },
+      {
+        "field": "portfolio.architectureLayers.1.name",
+        "factIds": [
+          "game",
+          "augments",
+          "rounds",
+          "authority",
+          "traffic",
+          "interactions",
+          "effects",
+          "targeting",
+          "pass",
+          "limits",
+          "verified-scope"
+        ]
+      },
+      {
+        "field": "portfolio.architectureLayers.1.items.0",
+        "factIds": [
+          "game",
+          "augments",
+          "rounds",
+          "authority",
+          "traffic",
+          "interactions",
+          "effects",
+          "targeting",
+          "pass",
+          "limits",
+          "verified-scope"
+        ]
+      },
+      {
+        "field": "portfolio.architectureLayers.1.items.1",
+        "factIds": [
+          "game",
+          "augments",
+          "rounds",
+          "authority",
+          "traffic",
+          "interactions",
+          "effects",
+          "targeting",
+          "pass",
+          "limits",
+          "verified-scope"
+        ]
+      },
+      {
+        "field": "portfolio.architectureLayers.2.name",
+        "factIds": [
+          "game",
+          "augments",
+          "rounds",
+          "authority",
+          "traffic",
+          "interactions",
+          "effects",
+          "targeting",
+          "pass",
+          "limits",
+          "verified-scope"
+        ]
+      },
+      {
+        "field": "portfolio.architectureLayers.2.items.0",
+        "factIds": [
+          "game",
+          "augments",
+          "rounds",
+          "authority",
+          "traffic",
+          "interactions",
+          "effects",
+          "targeting",
+          "pass",
+          "limits",
+          "verified-scope"
+        ]
+      },
+      {
+        "field": "portfolio.architectureLayers.2.items.1",
+        "factIds": [
+          "game",
+          "augments",
+          "rounds",
+          "authority",
+          "traffic",
+          "interactions",
+          "effects",
+          "targeting",
+          "pass",
+          "limits",
+          "verified-scope"
+        ]
+      },
+      {
+        "field": "portfolio.architectureLayers.3.name",
+        "factIds": [
+          "game",
+          "augments",
+          "rounds",
+          "authority",
+          "traffic",
+          "interactions",
+          "effects",
+          "targeting",
+          "pass",
+          "limits",
+          "verified-scope"
+        ]
+      },
+      {
+        "field": "portfolio.architectureLayers.3.items.0",
+        "factIds": [
+          "game",
+          "augments",
+          "rounds",
+          "authority",
+          "traffic",
+          "interactions",
+          "effects",
+          "targeting",
+          "pass",
+          "limits",
+          "verified-scope"
+        ]
+      },
+      {
+        "field": "portfolio.architectureLayers.3.items.1",
+        "factIds": [
+          "game",
+          "augments",
+          "rounds",
+          "authority",
+          "traffic",
+          "interactions",
+          "effects",
+          "targeting",
+          "pass",
+          "limits",
+          "verified-scope"
+        ]
+      },
+      {
+        "field": "portfolio.result",
+        "factIds": [
+          "game",
+          "augments",
+          "rounds",
+          "authority",
+          "traffic",
+          "interactions",
+          "effects",
+          "targeting",
+          "pass",
+          "limits",
+          "verified-scope"
+        ]
+      },
+      {
+        "field": "portfolio.limitations.0",
+        "factIds": [
+          "game",
+          "augments",
+          "rounds",
+          "authority",
+          "traffic",
+          "interactions",
+          "effects",
+          "targeting",
+          "pass",
+          "limits",
+          "verified-scope"
+        ]
+      },
+      {
+        "field": "portfolio.limitations.1",
+        "factIds": [
+          "game",
+          "augments",
+          "rounds",
+          "authority",
+          "traffic",
+          "interactions",
+          "effects",
+          "targeting",
+          "pass",
+          "limits",
+          "verified-scope"
+        ]
+      }
+    ]
+  },
+  "proposal": {
+    "demo": "",
+    "kind": "Project",
+    "slug": "github-1431052115",
+    "tech": [
+      "Godot",
+      "GDScript",
+      "GD-Sync",
+      "RigidBody2D"
+    ],
+    "title": "증강 알까기",
+    "detail": {
+      "process": "",
+      "features": [
+        "물리 기반 턴제 대전 — 조준과 발사 뒤 모든 돌의 이동과 탈락 판정을 해소한 다음 차례를 넘겨, 입력과 결과 판정의 경계를 분명하게 나눕니다.",
+        "라운드 기반 증강 선택 — 시작 전과 공동 라운드의 선택 단계를 구분하고, 양쪽 선택이 끝나기 전에는 다음 행동으로 넘어가지 않도록 경기 흐름에 연결합니다.",
+        "서로 조합되는 증강 — 돌의 물리 특성, 발사 방식, 충돌 반응과 필드를 개별 효과로 나누고, 처리 순서를 정해 획득 순서가 조합 결과를 바꾸지 않도록 구성했습니다.",
+        "로컬·온라인 대전 — 로컬에서는 한 화면에서 번갈아 조작하고, 온라인에서는 GD-Sync 방과 준비 과정을 거쳐 호스트 검증 아래 같은 경기 규칙을 적용합니다.",
+        "경기 상태와 조작 UI의 분리 — 참가자의 대상 선택, 발사력 표시, 동결 차례 넘기기를 경기 상태와 연결하되 늦게 도착한 동기화가 진행 중인 입력을 무조건 덮지 않게 처리합니다."
+      ],
+      "overview": "증강 알까기는 한 번의 발사 결과를 읽는 물리 조작과, 라운드마다 달라지는 선택을 함께 다루는 게임입니다. 증강은 단순한 수치 보너스에 머물지 않고 돌의 변신, 발사 변환, 시야 제한, 임시 벽과 특수 승리 조건으로 플레이 방식을 바꿉니다. 온라인에서도 참가자가 각자 결과를 계산하는 대신 호스트가 경기 결과를 확정하고, 참가자는 조작을 요청하고 확정된 상태를 받아 표시하는 구조를 사용합니다.",
+      "architecture": "GameManager가 경기 진행과 상태 전환을 조율하고, AugmentManager는 정의 Resource와 개별 Effect를 연결해 소유·사용·발동을 관리합니다. 돌의 이동과 충돌은 물리 오브젝트가 맡고 UI는 선택과 조작을 전달합니다. 온라인 경계에서는 NetworkManager가 참가자 입력을 검증할 호스트로 전달하며, 경기 결과와 부가 상태를 스냅샷으로 돌려보냅니다. 참가자는 확정 상태를 보간해 표시하면서 아직 확정되지 않은 로컬 대상 선택은 별도로 유지합니다.",
+      "implementation": [
+        "증강 정의와 실행 효과를 분리하고 발사 전·충돌·이동 정지·턴 종료 같은 공통 시점에 개별 Effect를 호출합니다. 이 구조에서는 경기 전체 흐름과 증강별 동작을 구분해 다루며 여러 증강이 같은 처리 시점에 참여할 수 있습니다.",
+        "물리 해소와 라운드 보상을 분리했습니다. 양쪽이 정상 행동을 마쳤는지 확인하고, 승패가 결정된 뒤에는 다음 증강 선택을 열지 않도록 턴 완료 경계를 관리합니다.",
+        "온라인 참가자의 입력을 결과 변경과 구분했습니다. 스킬 대상과 요청 순서는 호스트에서 검증하고, 승인·거절 응답과 확정 스냅샷을 받은 뒤 참가자 상태를 정리합니다.",
+        "매번 전체 상태를 보내는 대신 이동 중심 상태와 증강·벽 같은 부가 상태를 나눴습니다. 변화가 없을 때 전송을 쉬되 heartbeat와 종료 시 캐시 초기화로 유휴·재접속 경로도 다룹니다.",
+        "지연이나 취소가 UI를 오래된 상태로 되돌리는 경로를 회귀 테스트로 분리했습니다. 대상 선택 보존, 파워 초기화, 동결 차례 넘기기를 각각 재현하는 테스트를 두어 경기 규칙과 화면 상태를 함께 확인할 수 있게 했습니다."
+      ],
+      "troubleshooting": [
+        {
+          "title": "호스트 스냅샷과 참가자 타깃 선택의 상태 충돌 분리",
+          "problem": "참가자가 스킬 대상을 고르는 동안 호스트는 아직 조준 상태에 있습니다. 이 값을 참가자 화면에 그대로 적용하면 진행 중인 대상 선택이 취소될 수 있는 상태 충돌이 있었습니다.",
+          "solution": "참가자의 로컬 타깃 선택과 호스트가 확정하는 경기 상태를 구분했습니다. 자기 차례의 대상 선택 중에는 호스트의 조준 상태로 되돌리지 않고, 요청 순서와 승인 결과를 확인한 뒤 효과와 턴을 반영하도록 변경했습니다.",
+          "result": "선택 상태 보존 분기와 호스트 스냅샷을 주입하는 회귀 테스트를 추가했습니다. 동기화로 갱신할 경기 상태와 참가자에게 유지할 입력 상태를 구분하는 구조가 코드에 반영되어 있습니다."
+        },
+        {
+          "title": "발사력 표시와 실제 입력 상태의 생명주기 맞추기",
+          "problem": "발사력 표시의 초기값과 조준 취소·발사 후 상태가 따로 관리되면, 실제 입력이 끝났어도 이전 드래그 값이 화면에 남을 수 있었습니다.",
+          "solution": "HUD 초기값을 정리하고 발사·취소·HUD 재생성·참가자 스냅샷 경로에서 같은 초기 상태로 돌아가도록 수정했습니다. 일반 발사뿐 아니라 증강 발사와 재시작 경로까지 검사 대상으로 넓혔습니다.",
+          "result": "게이지 값·표시 문자열·채움 패널을 함께 검사하는 회귀 테스트를 추가했습니다. 발사 종료뿐 아니라 취소·스냅샷 적용·재시작을 포함해 화면 표시와 입력 상태가 어긋날 수 있는 경로를 구체적으로 점검하도록 구성했습니다."
+        },
+        {
+          "title": "동결 상태의 턴 진행과 늦게 도착한 요청 구분",
+          "problem": "자기 돌이 모두 동결되면 발사할 수 없으므로 턴을 끝내는 별도 경로가 필요합니다. 온라인에서는 중복 요청이나 이전 턴의 응답이 다음 차례를 바꾸지 않도록 처리해야 했습니다.",
+          "solution": "발사 불가 사유와 현재 차례를 확인한 경우에만 넘기기를 허용하고, 호스트가 턴 revision과 요청 순서를 검증하도록 연결했습니다. 참가자는 요청이 진행 중일 때 추가 입력을 막고 과거 revision의 스냅샷은 적용하지 않습니다.",
+          "result": "동결 해제 시점, 중복·과거 요청 거절, 지연 응답, 타임아웃 후 재시도를 검사하는 회귀 테스트를 추가했습니다. 턴을 넘기는 정상 경로와 이전 차례의 요청을 거부하는 경로를 함께 점검하도록 구성했습니다."
+        }
+      ],
+      "roleSummary": "Git 기록에서 peeta0126 계정의 온라인 스킬 처리, 발사력 표시 초기화와 UI 상태 수정, 동결 차례 넘기기 및 관련 테스트 추가를 확인했습니다. 팀 전체의 증강 기획·리소스 제작·모든 기능을 개인 담당 범위로 확장하지 않았습니다.",
+      "architectureLayers": [
+        {
+          "name": "입력·UI",
+          "items": [
+            "조준·대상 선택",
+            "증강 카드·HUD"
+          ]
+        },
+        {
+          "name": "경기·증강",
+          "items": [
+            "GameManager / 상태 전환",
+            "Resource / Effect"
+          ]
+        },
+        {
+          "name": "온라인 경계",
+          "items": [
+            "호스트 입력 검증",
+            "확정 상태·부가 상태 전달"
+          ]
+        },
+        {
+          "name": "물리·표시",
+          "items": [
+            "돌 이동·충돌",
+            "참가자 보간·로컬 선택 보존"
+          ]
+        }
+      ],
+      "result": "로컬 대전의 물리 규칙과 증강 선택을 온라인 호스트 검증 구조에 연결했습니다. 개별 효과를 추가하는 구조뿐 아니라 조합·턴 완료·참가자 입력·취소를 다루는 회귀 테스트 코드도 갖췄습니다. 다만 최신 버전의 실제 서비스 검증, 서로 다른 기기의 플레이 세션, 밸런스와 배포 방식은 확인하거나 보완할 과제로 남아 있습니다.",
+      "limitations": [
+        "최신 네트워크 코드와 과거 검증 문서의 버전 차이를 확인하고 별도 기기 환경에서 통합 검증이 필요합니다.",
+        "실제 플레이를 통한 증강 밸런스 점검과 배포 방식 확정이 남아 있습니다."
+      ]
+    },
+    "github": "https://github.com/peeta0126/AugmentAlkkagi",
+    "period": "기간 확인 필요",
+    "featured": true,
+    "subtitle": "증강 선택과 호스트 권위 동기화를 결합한 물리 기반 대전 게임",
+    "description": "돌을 밀어 상대 돌을 보드 밖으로 보내는 물리 알까기에 증강 선택을 연결한 대전 게임입니다. 같은 조작 규칙 안에서 돌의 특성·발사 방식·필드 조건을 바꾸며 서로 다른 전략을 구성할 수 있고, 로컬 대전과 온라인 대전에 같은 경기 규칙을 적용합니다."
+  },
+  "approvalPreview": {
+    "demo": "",
+    "kind": "Project",
+    "slug": "github-1431052115",
+    "tech": [
+      "Godot 4.7.2",
+      "GDScript",
+      "GD-Sync 1.0.2",
+      "Python",
+      "RigidBody2D",
+      "GPUParticles2D",
+      "Shader",
+      "Windows Desktop"
+    ],
+    "title": "증강 알까기",
+    "detail": {
+      "process": "온라인 대전 실행에는 양쪽 PC의 인터넷 연결과 Windows 방화벽의 앱 네트워크 접근 허용이 필요함 [근거: docs/ONLINE_MULTIPLAYER_GUIDE.md] 온라인 대전은 GD-Sync 방 코드와 호스트·참가자 역할을 전제로 하며, 방장 연결 종료 시 현재 대전이 종료됨 [근거: docs/ONLINE_MULTIPLAYER_GUIDE.md] GD-Sync API 키는 공식 export 플러그인을 통해 PCK에 추가되며, 원본 keys.cfg는 Git과 배포 ZIP에 별도 파일로 포함되지 않는다고 문서에 기재됨 [근거: docs/ONLINE_MULTIPLAYER_GUIDE.md] Windows Desktop x86_64 내보내기 프리셋과 Godot 4.7.2 Export Templates를 사용하는 빌드 절차가 문서화되어 있음 [근거: README.md]",
+      "features": [
+        "중력 0의 RigidBody2D 기반 알까기 물리와 CCD, 감속·정지·충돌 판정 지원 [근거: README.md]",
+        "504×540px 보드와 19×19 격자, 9개 화점 구성 [근거: README.md]",
+        "3·4·5개 시작 설정과 자유 배치 지원 [근거: README.md]",
+        "시작 및 공동 3·6라운드 증강 선택, 플레이어별 최대 3개 제한 제공 [근거: README.md]",
+        "22종 증강과 증강 선택 후 턴 유지, 새로고침 모드, 혼돈 모드 지원 [근거: README.md]",
+        "GD-Sync 기반 로비, 준비 상태, 6자리 방 코드, 호스트 권위 입력 검증, 변화 기반 스냅샷과 보간 구성 [근거: README.md]",
+        "온라인 대전에서 방장은 흑돌, 참가자는 백돌로 연결되며 방장 연결 종료 시 대전이 종료됨 [근거: docs/ONLINE_MULTIPLAYER_GUIDE.md]",
+        "시야 제한 셰이더, 눈보라·불덩이·중력장·충격파·검 등 증강별 시각 효과 구성 [근거: scenes/effects/blind.tscn, scenes/effects/blizzard.tscn, scenes/effects/fireball.tscn, scenes/effects/gravity_field.tscn, scenes/effects/greatsword.tscn]"
+      ],
+      "overview": "증강 알까기는 중력이 없는 2D 물리 환경에서 흑돌과 백돌을 발사해 대전하는 게임입니다. 한 PC에서 즐기는 로컬 대전과 GD-Sync를 활용한 온라인 1:1 대전을 지원하며, 게임 중 선택하는 증강이 턴과 보드 상황에 변화를 줍니다. 보드 규칙, 증강 효과, 네트워크 동기화, UI와 이펙트를 Godot 프로젝트 구조로 분리해 구성했습니다. [근거: README.md, project.godot]",
+      "architecture": "Godot Scene과 GDScript를 중심으로 구성한 2D 게임 아키텍처입니다. main.tscn을 진입점으로 두고, 핵심 게임 상태·게임 매니저·보드·물리 말·네트워크 매니저·UI·증강 효과를 각각의 디렉터리로 분리했습니다. 증강은 정의와 관리 로직, 개별 효과 로직, 시각 효과 Scene으로 나뉘며, GD-Sync는 autoload와 플러그인으로 연결됩니다. [근거: project.godot, README.md]",
+      "implementation": [
+        "게임의 시작 Scene을 main.tscn으로 지정하고 1280×720 뷰포트와 canvas_items 스트레치 설정을 적용 [근거: project.godot]",
+        "증강 정의·관리와 개별 효과를 분리하고, 증강 효과별 GDScript와 효과 Scene을 연결하는 구조로 구성 [근거: README.md, scenes/effects/blind.tscn, scenes/effects/blizzard.tscn, scenes/effects/fireball.tscn, scenes/effects/gravity_field.tscn]",
+        "Blind 효과에서 보드 크기와 시야 반경을 기준으로 여러 중심점 주변만 투명하게 표시하는 CanvasItem 셰이더를 사용 [근거: scenes/effects/blind.tscn]",
+        "Blizzard와 Fireball 효과에 GPUParticles2D, Gradient, ParticleProcessMaterial을 사용해 눈보라와 투사체 궤적을 표현 [근거: scenes/effects/blizzard.tscn, scenes/effects/fireball.tscn]",
+        "Fireball 효과에 발광 스프라이트, 코어 스프라이트, 파티클 트레일, PointLight2D, pulse Animation을 결합 [근거: scenes/effects/fireball.tscn]",
+        "Snowball 효과에 조준선, 궤적, 목표 링, 투사체 파티클, 충돌 시 ImpactParticles를 별도 구성 [근거: scenes/effects/snowball.tscn]",
+        "GD-Sync를 autoload로 등록하고 온라인 로비와 네트워크 동기화 기능을 프로젝트에 포함 [근거: project.godot, README.md]",
+        "headless 모드에서 보드 기하, 증강, 네트워크 연결 종료, 스냅샷 제한, RNG 격리 등을 확인할 수 있는 자동 테스트 실행 명령을 README에 정리 [근거: README.md]"
+      ],
+      "troubleshooting": [],
+      "roleSummary": "Git 기록에서 peeta0126 계정의 온라인 스킬 처리, 발사력 표시 초기화와 UI 상태 수정, 동결 차례 넘기기 및 관련 테스트 추가를 확인했습니다. 팀 전체의 증강 기획·리소스 제작·모든 기능을 개인 담당 범위로 확장하지 않았습니다.",
+      "architectureLayers": [
+        {
+          "name": "입력·UI",
+          "items": [
+            "조준·대상 선택",
+            "증강 카드·HUD"
+          ]
+        },
+        {
+          "name": "경기·증강",
+          "items": [
+            "GameManager / 상태 전환",
+            "Resource / Effect"
+          ]
+        },
+        {
+          "name": "온라인 경계",
+          "items": [
+            "호스트 입력 검증",
+            "확정 상태·부가 상태 전달"
+          ]
+        },
+        {
+          "name": "물리·표시",
+          "items": [
+            "돌 이동·충돌",
+            "참가자 보간·로컬 선택 보존"
+          ]
+        }
+      ],
+      "result": "로컬 대전의 물리 규칙과 증강 선택을 온라인 호스트 검증 구조에 연결했습니다. 개별 효과를 추가하는 구조뿐 아니라 조합·턴 완료·참가자 입력·취소를 다루는 회귀 테스트 코드도 갖췄습니다. 다만 최신 버전의 실제 서비스 검증, 서로 다른 기기의 플레이 세션, 밸런스와 배포 방식은 확인하거나 보완할 과제로 남아 있습니다.",
+      "limitations": [
+        "최신 네트워크 코드와 과거 검증 문서의 버전 차이를 확인하고 별도 기기 환경에서 통합 검증이 필요합니다.",
+        "실제 플레이를 통한 증강 밸런스 점검과 배포 방식 확정이 남아 있습니다."
+      ]
+    },
+    "github": "https://github.com/peeta0126/AugmentAlkkagi",
+    "period": "기간 확인 필요",
+    "featured": true,
+    "subtitle": "증강 시스템과 온라인 대전을 결합한 물리 기반 알까기 게임",
+    "description": "Godot 4.7.2로 제작한 흑돌·백돌 물리 알까기 게임입니다. 로컬 2인 대전과 GD-Sync 기반 1:1 온라인 대전, 다양한 증강 및 효과 연출을 제공합니다. [근거: README.md, project.godot]"
+  },
+  "legacyAnalysis": {
+    "id": "6de9280d-e45a-450a-b3ae-29fe80b82a55",
+    "project_id": "c3db6a2d-cafb-4cf5-a6f4-89a1c5adcb65",
+    "commit_sha": "0b2f7cba2c8b3d9ff1418e2f8325ffef2a09963f",
+    "analyzed_files": [
+      {
+        "sha": "76e54b40f5eb6573ed18738dde338e2b444de60c",
+        "path": "project.godot"
+      },
+      {
+        "sha": "f2a68f1dc616eb84cb57b0e5fcbba5b53166669f",
+        "path": "README.md"
+      },
+      {
+        "sha": "47e4d44a3da703d5b7646c96691d9234cf37aaec",
+        "path": "docs/ONLINE_MULTIPLAYER_GUIDE.md"
+      },
+      {
+        "sha": "836b10f295cae06f2b7b7cf6483e0a97fe9a00dc",
+        "path": "scenes/effects/blind.tscn"
+      },
+      {
+        "sha": "1de31b41e80790a15a2c3f8e94aba4b7f93c265f",
+        "path": "scenes/effects/blizzard.tscn"
+      },
+      {
+        "sha": "59816d1eac70d04838749506eb1fd4c35663f5b8",
+        "path": "scenes/effects/blood_festival.tscn"
+      },
+      {
+        "sha": "bb5922738dfa12c95ffe635c2f01cd16f1ec8d47",
+        "path": "scenes/effects/connect_four.tscn"
+      },
+      {
+        "sha": "94c03631561d914434883aa5ccd30a3c64915e32",
+        "path": "scenes/effects/dodge.tscn"
+      },
+      {
+        "sha": "17781c41381367e148c6f199fbe63db54debafb2",
+        "path": "scenes/effects/earthquake.tscn"
+      },
+      {
+        "sha": "74d060e276666e6ab9fd42133caf1966aef81cda",
+        "path": "scenes/effects/fireball.tscn"
+      },
+      {
+        "sha": "fdca8e72ecab50777a270af0493b4b83ca8e466c",
+        "path": "scenes/effects/gravity_field.tscn"
+      },
+      {
+        "sha": "1091c76272efcd2757e4c9e7d22124d1295654b3",
+        "path": "scenes/effects/greatsword.tscn"
+      },
+      {
+        "sha": "eb8be403e02fe47722d2d5c9f0e75fd2a563800b",
+        "path": "scenes/effects/janggi.tscn"
+      },
+      {
+        "sha": "ba25f85ea39c2a808fb1dac6c31d270ef4d9783e",
+        "path": "scenes/effects/king_shockwave.tscn"
+      },
+      {
+        "sha": "c2c6f52b1a18b00972bc9416cafa3daaa19de629",
+        "path": "scenes/effects/king.tscn"
+      },
+      {
+        "sha": "28f6779d4877eb986de063d981ef5e7742b091ef",
+        "path": "scenes/effects/merge.tscn"
+      },
+      {
+        "sha": "b022dca5a0767fe20a30c16947288279654717aa",
+        "path": "scenes/effects/snowball.tscn"
+      },
+      {
+        "sha": "5cec0133470d98e86a33d164c5e89589646e958d",
+        "path": "scenes/effects/sonic_boom.tscn"
+      }
+    ],
+    "analysis_result": {
+      "prs": [
+        {
+          "id": "pr:4",
+          "body": "Closes #\n\n## 무엇을 바꿨나요\n<!-- 두세 줄. 화면이 바뀌었으면 어떻게 바뀌었는지 -->\n\n## 확인한 것\n<!-- 돌려 본 테스트, 직접 해 본 것. 안 해 본 건 \"안 해 봄\"이라고 적기 -->\n\n## 다른 사람이 알아야 할 것\n<!-- 없으면 지우기 -->\n",
+          "title": "Integration/gdsync only"
+        }
+      ],
+      "tech": [
+        "Godot 4.7.2",
+        "GDScript",
+        "GD-Sync 1.0.2",
+        "Python",
+        "RigidBody2D",
+        "GPUParticles2D",
+        "Shader",
+        "Windows Desktop"
+      ],
+      "tree": [
+        ".editorconfig",
+        ".gitattributes",
+        ".github",
+        ".github/ISSUE_TEMPLATE",
+        ".github/ISSUE_TEMPLATE/bug.yml",
+        ".github/ISSUE_TEMPLATE/config.yml",
+        ".github/ISSUE_TEMPLATE/task.yml",
+        ".github/pull_request_template.md",
+        ".github/team",
+        ".github/team/team.py",
+        ".github/team/web.html",
+        ".github/workflows",
+        ".github/workflows/team.yml",
+        ".gitignore",
+        "AGENTS.md",
+        "README.md",
+        "addons",
+        "addons/GD-Sync",
+        "addons/GD-Sync/GD-Sync.gd",
+        "addons/GD-Sync/GD-Sync.gd.uid",
+        "addons/GD-Sync/LICENSE",
+        "addons/GD-Sync/MultiplayerClient.gd",
+        "addons/GD-Sync/MultiplayerClient.gd.uid",
+        "addons/GD-Sync/Scripts",
+        "addons/GD-Sync/Scripts/ConnectionController.gd",
+        "addons/GD-Sync/Scripts/ConnectionController.gd.uid",
+        "addons/GD-Sync/Scripts/DataController.gd",
+        "addons/GD-Sync/Scripts/DataController.gd.uid",
+        "addons/GD-Sync/Scripts/Enums",
+        "addons/GD-Sync/Scripts/Enums/Enums.gd",
+        "addons/GD-Sync/Scripts/Enums/Enums.gd.uid",
+        "addons/GD-Sync/Scripts/HTTPSController.gd",
+        "addons/GD-Sync/Scripts/HTTPSController.gd.uid",
+        "addons/GD-Sync/Scripts/InterestManager.gd",
+        "addons/GD-Sync/Scripts/InterestManager.gd.uid",
+        "addons/GD-Sync/Scripts/KeyStore.gd",
+        "addons/GD-Sync/Scripts/KeyStore.gd.uid",
+        "addons/GD-Sync/Scripts/LocalServer.gd",
+        "addons/GD-Sync/Scripts/LocalServer.gd.uid",
+        "addons/GD-Sync/Scripts/Logger.gd",
+        "addons/GD-Sync/Scripts/Logger.gd.uid",
+        "addons/GD-Sync/Scripts/MatchmakingController.gd",
+        "addons/GD-Sync/Scripts/MatchmakingController.gd.uid",
+        "addons/GD-Sync/Scripts/NodeTracker.gd",
+        "addons/GD-Sync/Scripts/NodeTracker.gd.uid",
+        "addons/GD-Sync/Scripts/RequestProcessor.gd",
+        "addons/GD-Sync/Scripts/RequestProcessor.gd.uid",
+        "addons/GD-Sync/Scripts/ServerSwitchController.gd",
+        "addons/GD-Sync/Scripts/ServerSwitchController.gd.uid",
+        "addons/GD-Sync/Scripts/SessionController.gd",
+        "addons/GD-Sync/Scripts/SessionController.gd.uid",
+        "addons/GD-Sync/Scripts/Steam.gd",
+        "addons/GD-Sync/Scripts/Steam.gd.uid",
+        "addons/GD-Sync/Scripts/Types",
+        "addons/GD-Sync/Scripts/Types/InterestObject.gd",
+        "addons/GD-Sync/Scripts/Types/InterestObject.gd.uid",
+        "addons/GD-Sync/Scripts/Types/InterestSource.gd.uid",
+        "addons/GD-Sync/Scripts/Types/InterestViewer.gd",
+        "addons/GD-Sync/Scripts/Types/InterestViewer.gd.uid",
+        "addons/GD-Sync/Scripts/Types/MatchmakingRequest.gd",
+        "addons/GD-Sync/Scripts/Types/MatchmakingRequest.gd.uid",
+        "addons/GD-Sync/Scripts/Types/NodeInstantiator.gd",
+        "addons/GD-Sync/Scripts/Types/NodeInstantiator.gd.uid",
+        "addons/GD-Sync/Scripts/Types/PropertySynchronizer.gd",
+        "addons/GD-Sync/Scripts/Types/PropertySynchronizer.gd.uid",
+        "addons/GD-Sync/Scripts/Types/SyncZone.gd.uid",
+        "addons/GD-Sync/Scripts/Types/SynchronizedAnimatedSprite2D.gd",
+        "addons/GD-Sync/Scripts/Types/SynchronizedAnimatedSprite2D.gd.uid",
+        "addons/GD-Sync/Scripts/Types/SynchronizedAnimationPlayer.gd",
+        "addons/GD-Sync/Scripts/Types/SynchronizedAnimationPlayer.gd.uid",
+        "addons/GD-Sync/Scripts/Types/SynchronizedAnimationTree.gd",
+        "addons/GD-Sync/Scripts/Types/SynchronizedAnimationTree.gd.uid",
+        "addons/GD-Sync/Scripts/Types/SynchronizedAudioStreamPlayer.gd",
+        "addons/GD-Sync/Scripts/Types/SynchronizedAudioStreamPlayer.gd.uid",
+        "addons/GD-Sync/Scripts/Types/SynchronizedAudioStreamPlayer2D.gd",
+        "addons/GD-Sync/Scripts/Types/SynchronizedAudioStreamPlayer2D.gd.uid",
+        "addons/GD-Sync/Scripts/Types/SynchronizedAudioStreamPlayer3D.gd",
+        "addons/GD-Sync/Scripts/Types/SynchronizedAudioStreamPlayer3D.gd.uid",
+        "addons/GD-Sync/Scripts/Types/SynchronizedGPUParticles2D.gd",
+        "addons/GD-Sync/Scripts/Types/SynchronizedGPUParticles2D.gd.uid",
+        "addons/GD-Sync/Scripts/Types/SynchronizedGPUParticles3D.gd",
+        "addons/GD-Sync/Scripts/Types/SynchronizedGPUParticles3D.gd.uid",
+        "addons/GD-Sync/Scripts/Types/SynchronizedRigidBody2D.gd",
+        "addons/GD-Sync/Scripts/Types/SynchronizedRigidBody2D.gd.uid",
+        "addons/GD-Sync/Scripts/Types/SynchronizedRigidBody3D.gd",
+        "addons/GD-Sync/Scripts/Types/SynchronizedRigidBody3D.gd.uid",
+        "addons/GD-Sync/Scripts/Types/VoiceChat.gd",
+        "addons/GD-Sync/Scripts/Types/VoiceChat.gd.uid",
+        "addons/GD-Sync/UI",
+        "addons/GD-Sync/UI/ConfigMenu",
+        "addons/GD-Sync/UI/ConfigMenu/ConfigMenu.gd",
+        "addons/GD-Sync/UI/ConfigMenu/ConfigMenu.gd.uid",
+        "addons/GD-Sync/UI/ConfigMenu/ConfigMenu.tscn",
+        "addons/GD-Sync/UI/ConfigMenu/GD-Theme.tres",
+        "addons/GD-Sync/UI/ConfigMenu/GDSLogo.png",
+        "addons/GD-Sync/UI/ConfigMenu/GDSLogo.png.import",
+        "addons/GD-Sync/UI/Fonts",
+        "addons/GD-Sync/UI/Fonts/Outfit-Regular.ttf",
+        "addons/GD-Sync/UI/Fonts/Outfit-Regular.ttf.import",
+        "addons/GD-Sync/UI/Icons",
+        "addons/GD-Sync/UI/Icons/InterestObject.png",
+        "addons/GD-Sync/UI/Icons/InterestObject.png.import",
+        "addons/GD-Sync/UI/Icons/InterestViewer.png",
+        "addons/GD-Sync/UI/Icons/InterestViewer.png.import",
+        "addons/GD-Sync/UI/Icons/LoadIcon.png",
+        "addons/GD-Sync/UI/Icons/LoadIcon.png.import",
+        "addons/GD-Sync/UI/Icons/NodeInstantiator.png",
+        "addons/GD-Sync/UI/Icons/NodeInstantiator.png.import",
+        "addons/GD-Sync/UI/Icons/SynchronizeIcon.png",
+        "addons/GD-Sync/UI/Icons/SynchronizeIcon.png.import",
+        "addons/GD-Sync/UI/Icons/SynchronizedAnimatedSprite.png",
+        "addons/GD-Sync/UI/Icons/SynchronizedAnimatedSprite.png.import",
+        "addons/GD-Sync/UI/Icons/SynchronizedAnimationPlayer.png",
+        "addons/GD-Sync/UI/Icons/SynchronizedAnimationPlayer.png.import",
+        "addons/GD-Sync/UI/Icons/SynchronizedAnimationTree.png",
+        "addons/GD-Sync/UI/Icons/SynchronizedAnimationTree.png.import",
+        "addons/GD-Sync/UI/Icons/SynchronizedAudioStreamPlayer.png",
+        "addons/GD-Sync/UI/Icons/SynchronizedAudioStreamPlayer.png.import",
+        "addons/GD-Sync/UI/Icons/SynchronizedGPUParticles.png",
+        "addons/GD-Sync/UI/Icons/SynchronizedGPUParticles.png.import",
+        "addons/GD-Sync/UI/Icons/SynchronizedRigidBody3D.png",
+        "addons/GD-Sync/UI/Icons/SynchronizedRigidBody3D.png.import",
+        "addons/GD-Sync/UI/Icons/VoiceChatIcon.png",
+        "addons/GD-Sync/UI/Icons/VoiceChatIcon.png.import",
+        "addons/GD-Sync/UI/Messages",
+        "addons/GD-Sync/UI/Messages/ToastMessage.gd",
+        "addons/GD-Sync/UI/Messages/ToastMessage.gd.uid",
+        "addons/GD-Sync/UI/Messages/ToastMessage.tscn",
+        "addons/GD-Sync/UI/Profiler",
+        "addons/GD-Sync/UI/Profiler/GDSyncProfiler.gd",
+        "addons/GD-Sync/UI/Profiler/GDSyncProfiler.gd.uid",
+        "addons/GD-Sync/UI/Profiler/GDSyncProfiler.tscn",
+        "addons/GD-Sync/UI/Profiler/ProfilerConnectionMonitor.gd",
+        "addons/GD-Sync/UI/Profiler/ProfilerConnectionMonitor.gd.uid",
+        "addons/GD-Sync/UI/Profiler/ProfilerDetailsBar.gd",
+        "addons/GD-Sync/UI/Profiler/ProfilerDetailsBar.gd.uid",
+        "addons/GD-Sync/UI/Profiler/ProfilerDetailsDisplay.gd",
+        "addons/GD-Sync/UI/Profiler/ProfilerDetailsDisplay.gd.uid",
+        "addons/GD-Sync/UI/Profiler/ProfilerGraph.gd",
+        "addons/GD-Sync/UI/Profiler/ProfilerGraph.gd.uid",
+        "addons/GD-Sync/UI/Profiler/ProfilerLabel.gd",
+        "addons/GD-Sync/UI/Profiler/ProfilerLabel.gd.uid",
+        "addons/GD-Sync/Updater.gd",
+        "addons/GD-Sync/Updater.gd.uid",
+        "addons/GD-Sync/keys.cfg.example",
+        "addons/GD-Sync/plugin.cfg",
+        "assets",
+        "assets/audio",
+        "assets/audio/baduk_collision_v2.mp3",
+        "assets/audio/baduk_collision_v2.mp3.import",
+        "assets/audio/baduk_move_v2.mp3",
+        "assets/audio/baduk_move_v2.mp3.import",
+        "assets/augments",
+        "assets/augments/icons",
+        "assets/augments/icons/blind.png",
+        "assets/augments/icons/blind.png.import",
+        "assets/augments/icons/blizzard.png",
+        "assets/augments/icons/blizzard.png.import",
+        "assets/augments/icons/blood_festival.png",
+        "assets/augments/icons/blood_festival.png.import",
+        "assets/augments/icons/coup.png",
+        "assets/augments/icons/coup.png.import",
+        "assets/augments/icons/dodge.png",
+        "assets/augments/icons/dodge.png.import",
+        "assets/augments/icons/earthquake.png",
+        "assets/augments/icons/earthquake.png.import",
+        "assets/augments/icons/frame_0.png",
+        "assets/augments/icons/frame_0.png.import",
+        "assets/augments/icons/frame_1.png",
+        "assets/augments/icons/frame_1.png.import",
+        "assets/augments/icons/frame_2.png",
+        "assets/augments/icons/frame_2.png.import",
+        "assets/augments/icons/frame_3.png",
+        "assets/augments/icons/frame_3.png.import",
+        "assets/augments/icons/gravity_field.png",
+        "assets/augments/icons/gravity_field.png.import",
+        "assets/augments/icons/greatsword.png",
+        "assets/augments/icons/greatsword.png.import",
+        "assets/augments/icons/janggi.png",
+        "assets/augments/icons/janggi.png.import",
+        "assets/augments/icons/king.png",
+        "assets/augments/icons/king.png.import",
+        "assets/augments/icons/piggyback.png",
+        "assets/augments/icons/piggyback.png.import",
+        "assets/augments/icons/scope.png",
+        "assets/augments/icons/scope.png.import",
+        "assets/augments/icons/snowball.png",
+        "assets/augments/icons/snowball.png.import",
+        "assets/augments/icons/sonic_boom.png",
+        "assets/augments/icons/sonic_boom.png.import",
+        "assets/augments/icons/stasis.png",
+        "assets/augments/icons/stasis.png.import",
+        "assets/augments/icons/stealth.png",
+        "assets/augments/icons/stealth.png.import",
+        "assets/augments/icons/tank.png",
+        "assets/augments/icons/tank.png.import",
+        "assets/augments/icons/train.png",
+        "assets/augments/icons/train.png.import",
+        "assets/augments/icons/triple_shot.png",
+        "assets/augments/icons/triple_shot.png.import",
+        "assets/augments/icons/wall_maria.png",
+        "assets/augments/icons/wall_maria.png.import",
+        "assets/augments/icons/wish.png",
+        "assets/augments/icons/wish.png.import",
+        "assets/augments/icons/wizard.png",
+        "assets/augments/icons/wizard.png.import",
+        "assets/coin",
+        "assets/coin/coin_black.png",
+        "assets/coin/coin_black.png.import",
+        "assets/coin/coin_white.png",
+        "assets/coin/coin_white.png.import",
+        "assets/effects",
+        "assets/effects/badge_greatsword.png",
+        "assets/effects/badge_greatsword.png.import",
+        "assets/effects/badge_king.png",
+        "assets/effects/badge_king.png.import",
+        "assets/effects/badge_wizard.png",
+        "assets/effects/badge_wizard.png.import",
+        "assets/effects/blizzard_sheet.png",
+        "assets/effects/blizzard_sheet.png.import",
+        "assets/effects/blood_sheet.png",
+        "assets/effects/blood_sheet.png.import",
+        "assets/effects/coup_sheet.png",
+        "assets/effects/coup_sheet.png.import",
+        "assets/effects/dodge_sheet.png",
+        "assets/effects/dodge_sheet.png.import",
+        "assets/effects/dragon_ball_1.png",
+        "assets/effects/dragon_ball_1.png.import",
+        "assets/effects/dragon_ball_2.png",
+        "assets/effects/dragon_ball_2.png.import",
+        "assets/effects/dragon_ball_3.png",
+        "assets/effects/dragon_ball_3.png.import",
+        "assets/effects/dragon_ball_4.png",
+        "assets/effects/dragon_ball_4.png.import",
+        "assets/effects/dragon_ball_5.png",
+        "assets/effects/dragon_ball_5.png.import",
+        "assets/effects/dragon_ball_6.png",
+        "assets/effects/dragon_ball_6.png.import",
+        "assets/effects/dragon_ball_7.png",
+        "assets/effects/dragon_ball_7.png.import",
+        "assets/effects/earthquake_crack.png",
+        "assets/effects/earthquake_crack.png.import",
+        "assets/effects/ink_crack.png",
+        "assets/effects/ink_crack.png.import",
+        "assets/effects/ink_lock.png",
+        "assets/effects/ink_lock.png.import",
+        "assets/effects/ink_snowball.png",
+        "assets/effects/ink_snowball.png.import",
+        "assets/effects/ink_sword.png",
+        "assets/effects/ink_sword.png.import",
+        "assets/effects/janggi_sheet.png",
+        "assets/effects/janggi_sheet.png.import",
+        "assets/effects/king_sheet.png",
+        "assets/effects/king_sheet.png.import",
+        "assets/effects/merge_sheet.png",
+        "assets/effects/merge_sheet.png.import",
+        "assets/effects/painted_train.png",
+        "assets/effects/painted_train.png.import",
+        "assets/effects/painted_wall.png",
+        "assets/effects/painted_wall.png.import",
+        "assets/effects/scope_reticle.png",
+        "assets/effects/scope_reticle.png.import",
+        "assets/effects/smoke_puff.png",
+        "assets/effects/smoke_puff.png.import",
+        "assets/effects/sonic_boom_sheet.png",
+        "assets/effects/sonic_boom_sheet.png.import",
+        "assets/effects/stealth_sheet.png",
+        "assets/effects/stealth_sheet.png.import",
+        "assets/effects/train_loco.png",
+        "assets/effects/train_loco.png.import",
+        "assets/effects/wizard_sheet.png",
+        "assets/effects/wizard_sheet.png.import",
+        "assets/tank",
+        "assets/tank/tank_black.png",
+        "assets/tank/tank_black.png.import",
+        "assets/tank/tank_white.png",
+        "assets/tank/tank_white.png.import",
+        "assets/ui",
+        "assets/ui/burst.png",
+        "assets/ui/burst.png.import",
+        "assets/ui/button_dark.png",
+        "assets/ui/button_dark.png.import",
+        "assets/ui/button_orange.png",
+        "assets/ui/button_orange.png.import",
+        "assets/ui/icon_developer.png",
+        "assets/ui/icon_developer.png.import",
+        "assets/ui/icon_join.png",
+        "assets/ui/icon_join.png.import",
+        "assets/ui/icon_local.png",
+        "assets/ui/icon_local.png.import",
+        "assets/ui/icon_online.png",
+        "assets/ui/icon_online.png.import",
+        "assets/ui/icon_quit.png",
+        "assets/ui/icon_quit.png.import",
+        "assets/ui/icon_settings.png",
+        "assets/ui/icon_settings.png.import",
+        "assets/ui/ink",
+        "assets/ui/ink/arrow_left.png",
+        "assets/ui/ink/arrow_left.png.import",
+        "assets/ui/ink/arrow_right.png",
+        "assets/ui/ink/arrow_right.png.import",
+        "assets/ui/ink/bar_orange.png",
+        "assets/ui/ink/bar_orange.png.import",
+        "assets/ui/ink/btn_dark_a.png",
+        "assets/ui/ink/btn_dark_a.png.import",
+        "assets/ui/ink/btn_dark_b.png",
+        "assets/ui/ink/btn_dark_b.png.import",
+        "assets/ui/ink/btn_dark_c.png",
+        "assets/ui/ink/btn_dark_c.png.import",
+        "assets/ui/ink/btn_dark_d.png",
+        "assets/ui/ink/btn_dark_d.png.import",
+        "assets/ui/ink/btn_orange_a.png",
+        "assets/ui/ink/btn_orange_a.png.import",
+        "assets/ui/ink/btn_orange_b.png",
+        "assets/ui/ink/btn_orange_b.png.import",
+        "assets/ui/ink/btn_orange_c.png",
+        "assets/ui/ink/btn_orange_c.png.import",
+        "assets/ui/ink/icon_copy.png",
+        "assets/ui/ink/icon_copy.png.import",
+        "assets/ui/ink/icon_exit.png",
+        "assets/ui/ink/icon_exit.png.import",
+        "assets/ui/ink/icon_swords.png",
+        "assets/ui/ink/icon_swords.png.import",
+        "assets/ui/ink/line.png",
+        "assets/ui/ink/line.png.import",
+        "assets/ui/ink/panel_large.png",
+        "assets/ui/ink/panel_large.png.import",
+        "assets/ui/ink/panel_mid_a.png",
+        "assets/ui/ink/panel_mid_a.png.import",
+        "assets/ui/ink/panel_mid_b.png",
+        "assets/ui/ink/panel_mid_b.png.import",
+        "assets/ui/ink/stone_black.png",
+        "assets/ui/ink/stone_black.png.import",
+        "assets/ui/ink/stone_white.png",
+        "assets/ui/ink/stone_white.png.import",
+        "assets/ui/ink/title_swash.png",
+        "assets/ui/ink/title_swash.png.import",
+        "assets/ui/ink/toggle_off.png",
+        "assets/ui/ink/toggle_off.png.import",
+        "assets/ui/ink/toggle_on.png",
+        "assets/ui/ink/toggle_on.png.import",
+        "assets/ui/lobby_board.png",
+        "assets/ui/lobby_board.png.import",
+        "assets/ui/lobby_logo.png",
+        "assets/ui/lobby_logo.png.import",
+        "assets/ui/menu_panel.png",
+        "assets/ui/menu_panel.png.import",
+        "assets/ui/online_lobby_exit_button.png",
+        "assets/ui/online_lobby_exit_button.png.import",
+        "assets/ui/online_lobby_ui_sheet.png",
+        "assets/ui/online_lobby_ui_sheet.png.import",
+        "assets/ui/swash.png",
+        "assets/ui/swash.png.import",
+        "assets/ui/vignette.png",
+        "assets/ui/vignette.png.import",
+        "build",
+        "build/.gitkeep",
+        "docs",
+        "docs/AUGMENT_DESIGN.md",
+        "docs/BOARD_VISUAL_DESIGN.md",
+        "docs/COLLABORATION_SETUP.md",
+        "docs/GAME_DESIGN.md",
+        "docs/NETWORK_ARCHITECTURE.md",
+        "docs/ONLINE_MULTIPLAYER_GUIDE.md",
+        "docs/PROJECT_STRUCTURE.md",
+        "docs/ROADMAP.md",
+        "docs/TEAM_GUIDE.md",
+        "docs/TEST_REPORT.md",
+        "docs/UI_DESIGN.md",
+        "export_presets.cfg",
+        "icon.svg",
+        "icon.svg.import",
+        "project.godot",
+        "resources",
+        "resources/augments",
+        "resources/augments/blind.tres",
+        "resources/augments/blizzard.tres",
+        "resources/augments/blood_festival.tres",
+        "resources/augments/coup.tres",
+        "resources/augments/dodge.tres",
+        "resources/augments/earthquake.tres",
+        "resources/augments/gravity_field.tres",
+        "resources/augments/greatsword.tres",
+        "resources/augments/janggi.tres",
+        "resources/augments/king.tres",
+        "resources/augments/piggyback.tres",
+        "resources/augments/scope.tres",
+        "resources/augments/snowball.tres",
+        "resources/augments/sonic_boom.tres",
+        "resources/augments/stasis.tres",
+        "resources/augments/stealth.tres",
+        "resources/augments/tank.tres",
+        "resources/augments/train.tres",
+        "resources/augments/triple_shot.tres",
+        "resources/augments/wall_maria.tres",
+        "resources/augments/wish.tres",
+        "resources/augments/wizard.tres",
+        "resources/balance",
+        "resources/balance/default_physics_balance.tres",
+        "scenes",
+        "scenes/effects",
+        "scenes/effects/blind.tscn",
+        "scenes/effects/blizzard.tscn",
+        "scenes/effects/blood_festival.tscn",
+        "scenes/effects/connect_four.tscn",
+        "scenes/effects/dodge.tscn",
+        "scenes/effects/earthquake.tscn",
+        "scenes/effects/fireball.tscn",
+        "scenes/effects/gravity_field.tscn",
+        "scenes/effects/greatsword.tscn",
+        "scenes/effects/janggi.tscn",
+        "scenes/effects/king.tscn",
+        "scenes/effects/king_shockwave.tscn",
+        "scenes/effects/merge.tscn",
+        "scenes/effects/snowball.tscn",
+        "scenes/effects/sonic_boom.tscn",
+        "scenes/effects/stasis.tscn",
+        "scenes/effects/stealth.tscn",
+        "scenes/effects/tank.tscn",
+        "scenes/effects/tank_white.tscn",
+        "scenes/effects/train.tscn",
+        "scenes/effects/wall_maria.tscn",
+        "scenes/effects/wish.tscn",
+        "scenes/main.tscn",
+        "scenes/ui",
+        "scenes/ui/augment_card.tscn",
+        "scenes/ui/augment_selection.tscn",
+        "scenes/ui/developer_augment_selection.tscn",
+        "scenes/ui/game_hud.tscn",
+        "scenes/ui/main_menu.tscn",
+        "scenes/ui/online_lobby.tscn",
+        "scenes/ui/piece_placement.tscn",
+        "scripts",
+        "scripts/augments",
+        "scripts/augments/augment_definition.gd",
+        "scripts/augments/augment_definition.gd.uid",
+        "scripts/augments/augment_manager.gd",
+        "scripts/augments/augment_manager.gd.uid",
+        "scripts/augments/effects",
+        "scripts/augments/effects/augment_effect.gd",
+        "scripts/augments/effects/augment_effect.gd.uid",
+        "scripts/augments/effects/blind_effect.gd",
+        "scripts/augments/effects/blind_effect.gd.uid",
+        "scripts/augments/effects/blizzard_effect.gd",
+        "scripts/augments/effects/blizzard_effect.gd.uid",
+        "scripts/augments/effects/blood_festival_effect.gd",
+        "scripts/augments/effects/blood_festival_effect.gd.uid",
+        "scripts/augments/effects/coup_effect.gd",
+        "scripts/augments/effects/coup_effect.gd.uid",
+        "scripts/augments/effects/dodge_effect.gd",
+        "scripts/augments/effects/dodge_effect.gd.uid",
+        "scripts/augments/effects/earthquake_effect.gd",
+        "scripts/augments/effects/earthquake_effect.gd.uid",
+        "scripts/augments/effects/gravity_field_effect.gd",
+        "scripts/augments/effects/gravity_field_effect.gd.uid",
+        "scripts/augments/effects/greatsword_effect.gd",
+        "scripts/augments/effects/greatsword_effect.gd.uid",
+        "scripts/augments/effects/janggi_effect.gd",
+        "scripts/augments/effects/janggi_effect.gd.uid",
+        "scripts/augments/effects/king_effect.gd",
+        "scripts/augments/effects/king_effect.gd.uid",
+        "scripts/augments/effects/piggyback_effect.gd",
+        "scripts/augments/effects/piggyback_effect.gd.uid",
+        "scripts/augments/effects/scope_effect.gd",
+        "scripts/augments/effects/scope_effect.gd.uid",
+        "scripts/augments/effects/snowball_effect.gd",
+        "scripts/augments/effects/snowball_effect.gd.uid",
+        "scripts/augments/effects/sonic_boom_effect.gd",
+        "scripts/augments/effects/sonic_boom_effect.gd.uid",
+        "scripts/augments/effects/stasis_effect.gd",
+        "scripts/augments/effects/stasis_effect.gd.uid",
+        "scripts/augments/effects/stealth_effect.gd",
+        "scripts/augments/effects/stealth_effect.gd.uid",
+        "scripts/augments/effects/tank_effect.gd",
+        "scripts/augments/effects/tank_effect.gd.uid",
+        "scripts/augments/effects/train_effect.gd",
+        "scripts/augments/effects/train_effect.gd.uid",
+        "scripts/augments/effects/triple_shot_effect.gd",
+        "scripts/augments/effects/triple_shot_effect.gd.uid",
+        "scripts/augments/effects/wall_maria_effect.gd",
+        "scripts/augments/effects/wall_maria_effect.gd.uid",
+        "scripts/augments/effects/wish_effect.gd",
+        "scripts/augments/effects/wish_effect.gd.uid",
+        "scripts/augments/effects/wizard_effect.gd",
+        "scripts/augments/effects/wizard_effect.gd.uid",
+        "scripts/core",
+        "scripts/core/game_manager.gd",
+        "scripts/core/game_manager.gd.uid",
+        "scripts/core/game_state_machine.gd",
+        "scripts/core/game_state_machine.gd.uid",
+        "scripts/effects",
+        "scripts/effects/blind.gd",
+        "scripts/effects/blind.gd.uid",
+        "scripts/effects/blizzard.gd",
+        "scripts/effects/blizzard.gd.uid",
+        "scripts/effects/blood_festival.gd",
+        "scripts/effects/blood_festival.gd.uid",
+        "scripts/effects/coin_toss.gd",
+        "scripts/effects/coin_toss.gd.uid",
+        "scripts/effects/dodge.gd",
+        "scripts/effects/dodge.gd.uid",
+        "scripts/effects/earthquake.gd",
+        "scripts/effects/earthquake.gd.uid",
+        "scripts/effects/fireball.gd",
+        "scripts/effects/fireball.gd.uid",
+        "scripts/effects/gravity_field.gd",
+        "scripts/effects/gravity_field.gd.uid",
+        "scripts/effects/gravity_rings.gd",
+        "scripts/effects/gravity_rings.gd.uid",
+        "scripts/effects/greatsword.gd",
+        "scripts/effects/greatsword.gd.uid",
+        "scripts/effects/janggi.gd",
+        "scripts/effects/janggi.gd.uid",
+        "scripts/effects/king.gd",
+        "scripts/effects/king.gd.uid",
+        "scripts/effects/king_shockwave.gd",
+        "scripts/effects/king_shockwave.gd.uid",
+        "scripts/effects/merge.gd",
+        "scripts/effects/merge.gd.uid",
+        "scripts/effects/sheet_pop.gd",
+        "scripts/effects/sheet_pop.gd.uid",
+        "scripts/effects/snowball.gd",
+        "scripts/effects/snowball.gd.uid",
+        "scripts/effects/sonic_boom.gd",
+        "scripts/effects/sonic_boom.gd.uid",
+        "scripts/effects/stasis.gd",
+        "scripts/effects/stasis.gd.uid",
+        "scripts/effects/stealth.gd",
+        "scripts/effects/stealth.gd.uid",
+        "scripts/effects/tank_visual.gd",
+        "scripts/effects/tank_visual.gd.uid",
+        "scripts/effects/train.gd",
+        "scripts/effects/train.gd.uid",
+        "scripts/effects/wall_maria.gd",
+        "scripts/effects/wall_maria.gd.uid",
+        "scripts/effects/wish.gd",
+        "scripts/effects/wish.gd.uid",
+        "scripts/gameplay",
+        "scripts/gameplay/board.gd",
+        "scripts/gameplay/board.gd.uid",
+        "scripts/gameplay/gameplay_rules.gd",
+        "scripts/gameplay/gameplay_rules.gd.uid",
+        "scripts/gameplay/physics_balance.gd",
+        "scripts/gameplay/physics_balance.gd.uid",
+        "scripts/gameplay/skill_projectile.gd",
+        "scripts/gameplay/skill_projectile.gd.uid",
+        "scripts/gameplay/temporary_wall.gd",
+        "scripts/gameplay/temporary_wall.gd.uid",
+        "scripts/network",
+        "scripts/network/network_manager.gd",
+        "scripts/network/network_manager.gd.uid",
+        "scripts/physics",
+        "scripts/physics/piece.gd",
+        "scripts/physics/piece.gd.uid",
+        "scripts/ui",
+        "scripts/ui/augment_card.gd",
+        "scripts/ui/augment_card.gd.uid",
+        "scripts/ui/augment_icon.gd",
+        "scripts/ui/augment_icon.gd.uid",
+        "scripts/ui/augment_selection.gd",
+        "scripts/ui/augment_selection.gd.uid",
+        "scripts/ui/developer_augment_selection.gd",
+        "scripts/ui/developer_augment_selection.gd.uid",
+        "scripts/ui/game_hud.gd",
+        "scripts/ui/game_hud.gd.uid",
+        "scripts/ui/ink_style.gd",
+        "scripts/ui/ink_style.gd.uid",
+        "scripts/ui/main_menu.gd",
+        "scripts/ui/main_menu.gd.uid",
+        "scripts/ui/online_lobby.gd",
+        "scripts/ui/online_lobby.gd.uid",
+        "scripts/ui/piece_placement.gd",
+        "scripts/ui/piece_placement.gd.uid",
+        "tests",
+        "tests/board_skill_network_stub.gd",
+        "tests/board_skill_network_stub.gd.uid",
+        "tests/gdsync_lobby_driver.gd",
+        "tests/gdsync_lobby_driver.gd.uid",
+        "tests/network_setup_modes_client.gd.uid",
+        "tests/network_setup_modes_host.gd.uid",
+        "tests/pass_turn_network_stub.gd",
+        "tests/pass_turn_network_stub.gd.uid",
+        "tests/test_all_augments.gd",
+        "tests/test_all_augments.gd.uid",
+        "tests/test_augment_followup.gd",
+        "tests/test_augment_followup.gd.uid",
+        "tests/test_augment_network_sync.gd",
+        "tests/test_augment_network_sync.gd.uid",
+        "tests/test_augment_patch.gd",
+        "tests/test_augment_patch.gd.uid",
+        "tests/test_augment_selection_layout.gd",
+        "tests/test_augment_selection_layout.gd.uid",
+        "tests/test_augments.gd",
+        "tests/test_augments.gd.uid",
+        "tests/test_blind_sight.gd",
+        "tests/test_blind_sight.gd.uid",
+        "tests/test_board_geometry.gd",
+        "tests/test_board_geometry.gd.uid",
+        "tests/test_board_skill_requests.gd",
+        "tests/test_board_skill_requests.gd.uid",
+        "tests/test_client_active_skill.gd",
+        "tests/test_client_active_skill.gd.uid",
+        "tests/test_coin_toss.gd",
+        "tests/test_coin_toss.gd.uid",
+        "tests/test_developer_mode.gd",
+        "tests/test_developer_mode.gd.uid",
+        "tests/test_game_scene.gd",
+        "tests/test_game_scene.gd.uid",
+        "tests/test_gravity_knight.gd",
+        "tests/test_gravity_knight.gd.uid",
+        "tests/test_guest_rng_isolation.gd",
+        "tests/test_guest_rng_isolation.gd.uid",
+        "tests/test_knight_resolution.gd",
+        "tests/test_knight_resolution.gd.uid",
+        "tests/test_launch_balance.gd",
+        "tests/test_launch_balance.gd.uid",
+        "tests/test_lobby_title_isolation.gd",
+        "tests/test_lobby_title_isolation.gd.uid",
+        "tests/test_lobby_ui_scales.gd",
+        "tests/test_lobby_ui_scales.gd.uid",
+        "tests/test_network_disconnect.gd",
+        "tests/test_network_disconnect.gd.uid",
+        "tests/test_network_interpolation.gd",
+        "tests/test_network_interpolation.gd.uid",
+        "tests/test_network_shot_clamp.gd",
+        "tests/test_network_shot_clamp.gd.uid",
+        "tests/test_new_augments_v2.gd",
+        "tests/test_new_augments_v2.gd.uid",
+        "tests/test_phase1.gd",
+        "tests/test_phase1.gd.uid",
+        "tests/test_piece_audio.gd",
+        "tests/test_piece_audio.gd.uid",
+        "tests/test_setup_modes.gd",
+        "tests/test_setup_modes.gd.uid",
+        "tests/test_seven_augment_patch.gd",
+        "tests/test_seven_augment_patch.gd.uid",
+        "tests/test_shot_power_reset.gd",
+        "tests/test_shot_power_reset.gd.uid",
+        "tests/test_snapshot_throttle.gd",
+        "tests/test_snapshot_throttle.gd.uid",
+        "tests/test_stasis_pass_turn.gd",
+        "tests/test_stasis_pass_turn.gd.uid",
+        "tests/test_triple_contacts.gd",
+        "tests/test_triple_contacts.gd.uid",
+        "tests/test_triple_fan.gd",
+        "tests/test_triple_fan.gd.uid",
+        "tests/test_triple_fragments.gd",
+        "tests/test_triple_fragments.gd.uid",
+        "tools",
+        "tools/make_effect_sheets.py",
+        "팀보드.bat"
+      ],
+      "title": "증강 알까기",
+      "images": [],
+      "commits": [
+        {
+          "id": "0b2f7cba2c8b3d9ff1418e2f8325ffef2a09963f",
+          "message": "feat: 타임프리즈 턴 넘기기 추가"
+        },
+        {
+          "id": "86c64721019fe335294c1e6deda30165cdf77cd1",
+          "message": "증강 이펙트를 손그림 시트 방식으로 새로 그림(쿠데타·나는 왕·피의 축제·은신·월마리아 등), 나는 왕 충격파 매 턴 재충전, 돌 위 바 표시 제거, 설계 문서·로드맵 갱신"
+        },
+        {
+          "id": "989b60c08816f7dacaa370e9e651aa43bf6684d5",
+          "message": "Fix UI layout, network skills, shot power reset and lobby title"
+        },
+        {
+          "id": "c76aff346e89ba62a1efaa9f7529360bc235a376",
+          "message": "뿌찍"
+        },
+        {
+          "id": "d2d362e611bb21a8a7e7286bf8254bfd13d61fa9",
+          "message": "증강 버그 수정 및 음속폭발 UI 수정"
+        },
+        {
+          "id": "495246960561a3e35d9dbe4deb45107f5976e8b5",
+          "message": "개발자 모드에서 스크롤할 때 증강 카드가 커진 채 남거나 스크롤과 싸우며 깨지던 버그 수정"
+        },
+        {
+          "id": "49310abc9cae26edb9290f6b0aef222832871f93",
+          "message": "기차·철도·벽돌 벽·갈라진 땅·정지·장기말·왕관·기사·마법사 표시를 잉크 스타일로 새로 그림, 카드 호버가 목록 가장자리에서 잘리지 않게 스크롤, '획득 즉시' 문구 삭제(다른 발동 시점만 알약으로 표시)"
+        },
+        {
+          "id": "f34a0ce35a649f62e269805be4331b62a65f1042",
+          "message": "증강 설명에서 숫자와 단위(2사이클, 40% 등)를 주황색으로 강조하고 줄 간격을 넓혀 핵심 수치가 먼저 보이게 함"
+        },
+        {
+          "id": "acf8c0ad920583dc30306df8d2b83b2aadb3d55c",
+          "message": "게임 시작·증강 선택 버튼의 아이콘과 글자를 한 덩어리로 정중앙에 맞추고, 증강 이름이 한 줄에 들어가도록 글자 크기를 자동 조절"
+        },
+        {
+          "id": "202b76c549fd2e90bd02527520d5803502a70553",
+          "message": "UI 점검: 배치 안내·패시브 상태·힌트·메뉴 확인창 글이 글자 중간에서 끊기던 것을 띄어쓰기 줄바꿈으로 수정, 종료 화면 폭발이 위로 잘리던 것 수정"
+        }
+      ],
+      "evidence": [
+        {
+          "claim": "Godot 4.7.2 기반의 증강 알까기 프로젝트이며 로컬 2인 대전과 GD-Sync 기반 온라인 1:1 대전을 지원한다.",
+          "sources": [
+            "README.md",
+            "project.godot"
+          ]
+        },
+        {
+          "claim": "중력 0의 2D 물리와 보드 설정, 증강 시스템이 주요 게임 기능으로 문서화되어 있다.",
+          "sources": [
+            "README.md"
+          ]
+        },
+        {
+          "claim": "GD-Sync 로비, 방 코드, 호스트 권위 입력 검증, 스냅샷과 보간이 온라인 구조에 포함되어 있다.",
+          "sources": [
+            "README.md",
+            "docs/ONLINE_MULTIPLAYER_GUIDE.md"
+          ]
+        },
+        {
+          "claim": "시야 제한, 눈보라, 불덩이, 중력장, 대검, 눈덩이 등의 증강 효과 Scene이 존재한다.",
+          "sources": [
+            "scenes/effects/blind.tscn",
+            "scenes/effects/blizzard.tscn",
+            "scenes/effects/fireball.tscn",
+            "scenes/effects/gravity_field.tscn",
+            "scenes/effects/greatsword.tscn",
+            "scenes/effects/snowball.tscn"
+          ]
+        },
+        {
+          "claim": "프로젝트는 Godot 설정에서 main.tscn을 시작 Scene으로 지정하고 GD-Sync를 autoload로 등록한다.",
+          "sources": [
+            "project.godot"
+          ]
+        },
+        {
+          "claim": "증강 이펙트의 손그림 시트, UI 레이아웃, 네트워크 스킬, 타임프리즈 턴 넘기기 등이 커밋 기록에 나타난다.",
+          "sources": [
+            "0b2f7cba2c8b3d9ff1418e2f8325ffef2a09963f",
+            "86c64721019fe335294c1e6deda30165cdf77cd1",
+            "989b60c08816f7dacaa370e9e651aa43bf6684d5",
+            "49310abc9cae26edb9290f6b0aef222832871f93"
+          ]
+        }
+      ],
+      "features": [
+        "중력 0의 RigidBody2D 기반 알까기 물리와 CCD, 감속·정지·충돌 판정 지원 [근거: README.md]",
+        "504×540px 보드와 19×19 격자, 9개 화점 구성 [근거: README.md]",
+        "3·4·5개 시작 설정과 자유 배치 지원 [근거: README.md]",
+        "시작 및 공동 3·6라운드 증강 선택, 플레이어별 최대 3개 제한 제공 [근거: README.md]",
+        "22종 증강과 증강 선택 후 턴 유지, 새로고침 모드, 혼돈 모드 지원 [근거: README.md]",
+        "GD-Sync 기반 로비, 준비 상태, 6자리 방 코드, 호스트 권위 입력 검증, 변화 기반 스냅샷과 보간 구성 [근거: README.md]",
+        "온라인 대전에서 방장은 흑돌, 참가자는 백돌로 연결되며 방장 연결 종료 시 대전이 종료됨 [근거: docs/ONLINE_MULTIPLAYER_GUIDE.md]",
+        "시야 제한 셰이더, 눈보라·불덩이·중력장·충격파·검 등 증강별 시각 효과 구성 [근거: scenes/effects/blind.tscn, scenes/effects/blizzard.tscn, scenes/effects/fireball.tscn, scenes/effects/gravity_field.tscn, scenes/effects/greatsword.tscn]"
+      ],
+      "overview": "증강 알까기는 중력이 없는 2D 물리 환경에서 흑돌과 백돌을 발사해 대전하는 게임입니다. 한 PC에서 즐기는 로컬 대전과 GD-Sync를 활용한 온라인 1:1 대전을 지원하며, 게임 중 선택하는 증강이 턴과 보드 상황에 변화를 줍니다. 보드 규칙, 증강 효과, 네트워크 동기화, UI와 이펙트를 Godot 프로젝트 구조로 분리해 구성했습니다. [근거: README.md, project.godot]",
+      "subtitle": "증강 시스템과 온라인 대전을 결합한 물리 기반 알까기 게임",
+      "languages": {
+        "Python": 92998,
+        "GDScript": 1032315,
+        "Batchfile": 78
+      },
+      "description": "Godot 4.7.2로 제작한 흑돌·백돌 물리 알까기 게임입니다. 로컬 2인 대전과 GD-Sync 기반 1:1 온라인 대전, 다양한 증강 및 효과 연출을 제공합니다. [근거: README.md, project.godot]",
+      "projectType": "게임 클라이언트",
+      "reviewNotes": [
+        "제공된 자료만으로는 프로젝트의 개발 기간, 개인 기여 범위, 팀 구성 여부를 확인할 수 없습니다.",
+        "실행 결과나 테스트 통과 결과의 수치가 제공되지 않아 성능·안정성·완성도에 대한 정량적 성과는 기재하지 않았습니다.",
+        "커밋 메시지에는 여러 수정 및 개선 사항이 기록되어 있으나 문제·접근·결과가 모두 확인되는 형태는 아니므로 troubleshooting 항목에서 제외했습니다.",
+        "제공된 자료에는 프로젝트의 사용자 수, 배포 성과, 플레이테스트 결과가 없습니다.",
+        "크기·파일 수 제한에 따라 일부 소스만 분석했습니다. 핵심 구현과 누락 범위를 검토하세요."
+      ],
+      "architecture": "Godot Scene과 GDScript를 중심으로 구성한 2D 게임 아키텍처입니다. main.tscn을 진입점으로 두고, 핵심 게임 상태·게임 매니저·보드·물리 말·네트워크 매니저·UI·증강 효과를 각각의 디렉터리로 분리했습니다. 증강은 정의와 관리 로직, 개별 효과 로직, 시각 효과 Scene으로 나뉘며, GD-Sync는 autoload와 플러그인으로 연결됩니다. [근거: project.godot, README.md]",
+      "considerations": [
+        "온라인 대전 실행에는 양쪽 PC의 인터넷 연결과 Windows 방화벽의 앱 네트워크 접근 허용이 필요함 [근거: docs/ONLINE_MULTIPLAYER_GUIDE.md]",
+        "온라인 대전은 GD-Sync 방 코드와 호스트·참가자 역할을 전제로 하며, 방장 연결 종료 시 현재 대전이 종료됨 [근거: docs/ONLINE_MULTIPLAYER_GUIDE.md]",
+        "GD-Sync API 키는 공식 export 플러그인을 통해 PCK에 추가되며, 원본 keys.cfg는 Git과 배포 ZIP에 별도 파일로 포함되지 않는다고 문서에 기재됨 [근거: docs/ONLINE_MULTIPLAYER_GUIDE.md]",
+        "Windows Desktop x86_64 내보내기 프리셋과 Godot 4.7.2 Export Templates를 사용하는 빌드 절차가 문서화되어 있음 [근거: README.md]"
+      ],
+      "implementation": [
+        "게임의 시작 Scene을 main.tscn으로 지정하고 1280×720 뷰포트와 canvas_items 스트레치 설정을 적용 [근거: project.godot]",
+        "증강 정의·관리와 개별 효과를 분리하고, 증강 효과별 GDScript와 효과 Scene을 연결하는 구조로 구성 [근거: README.md, scenes/effects/blind.tscn, scenes/effects/blizzard.tscn, scenes/effects/fireball.tscn, scenes/effects/gravity_field.tscn]",
+        "Blind 효과에서 보드 크기와 시야 반경을 기준으로 여러 중심점 주변만 투명하게 표시하는 CanvasItem 셰이더를 사용 [근거: scenes/effects/blind.tscn]",
+        "Blizzard와 Fireball 효과에 GPUParticles2D, Gradient, ParticleProcessMaterial을 사용해 눈보라와 투사체 궤적을 표현 [근거: scenes/effects/blizzard.tscn, scenes/effects/fireball.tscn]",
+        "Fireball 효과에 발광 스프라이트, 코어 스프라이트, 파티클 트레일, PointLight2D, pulse Animation을 결합 [근거: scenes/effects/fireball.tscn]",
+        "Snowball 효과에 조준선, 궤적, 목표 링, 투사체 파티클, 충돌 시 ImpactParticles를 별도 구성 [근거: scenes/effects/snowball.tscn]",
+        "GD-Sync를 autoload로 등록하고 온라인 로비와 네트워크 동기화 기능을 프로젝트에 포함 [근거: project.godot, README.md]",
+        "headless 모드에서 보드 기하, 증강, 네트워크 연결 종료, 스냅샷 제한, RNG 격리 등을 확인할 수 있는 자동 테스트 실행 명령을 README에 정리 [근거: README.md]"
+      ],
+      "troubleshooting": []
+    },
+    "generated_content": {
+      "demo": "",
+      "kind": "Project",
+      "slug": "github-1431052115",
+      "tech": [
+        "Godot 4.7.2",
+        "GDScript",
+        "GD-Sync 1.0.2",
+        "Python",
+        "RigidBody2D",
+        "GPUParticles2D",
+        "Shader",
+        "Windows Desktop"
+      ],
+      "title": "증강 알까기",
+      "detail": {
+        "process": "온라인 대전 실행에는 양쪽 PC의 인터넷 연결과 Windows 방화벽의 앱 네트워크 접근 허용이 필요함 [근거: docs/ONLINE_MULTIPLAYER_GUIDE.md] 온라인 대전은 GD-Sync 방 코드와 호스트·참가자 역할을 전제로 하며, 방장 연결 종료 시 현재 대전이 종료됨 [근거: docs/ONLINE_MULTIPLAYER_GUIDE.md] GD-Sync API 키는 공식 export 플러그인을 통해 PCK에 추가되며, 원본 keys.cfg는 Git과 배포 ZIP에 별도 파일로 포함되지 않는다고 문서에 기재됨 [근거: docs/ONLINE_MULTIPLAYER_GUIDE.md] Windows Desktop x86_64 내보내기 프리셋과 Godot 4.7.2 Export Templates를 사용하는 빌드 절차가 문서화되어 있음 [근거: README.md]",
+        "features": [
+          "중력 0의 RigidBody2D 기반 알까기 물리와 CCD, 감속·정지·충돌 판정 지원 [근거: README.md]",
+          "504×540px 보드와 19×19 격자, 9개 화점 구성 [근거: README.md]",
+          "3·4·5개 시작 설정과 자유 배치 지원 [근거: README.md]",
+          "시작 및 공동 3·6라운드 증강 선택, 플레이어별 최대 3개 제한 제공 [근거: README.md]",
+          "22종 증강과 증강 선택 후 턴 유지, 새로고침 모드, 혼돈 모드 지원 [근거: README.md]",
+          "GD-Sync 기반 로비, 준비 상태, 6자리 방 코드, 호스트 권위 입력 검증, 변화 기반 스냅샷과 보간 구성 [근거: README.md]",
+          "온라인 대전에서 방장은 흑돌, 참가자는 백돌로 연결되며 방장 연결 종료 시 대전이 종료됨 [근거: docs/ONLINE_MULTIPLAYER_GUIDE.md]",
+          "시야 제한 셰이더, 눈보라·불덩이·중력장·충격파·검 등 증강별 시각 효과 구성 [근거: scenes/effects/blind.tscn, scenes/effects/blizzard.tscn, scenes/effects/fireball.tscn, scenes/effects/gravity_field.tscn, scenes/effects/greatsword.tscn]"
+        ],
+        "overview": "증강 알까기는 중력이 없는 2D 물리 환경에서 흑돌과 백돌을 발사해 대전하는 게임입니다. 한 PC에서 즐기는 로컬 대전과 GD-Sync를 활용한 온라인 1:1 대전을 지원하며, 게임 중 선택하는 증강이 턴과 보드 상황에 변화를 줍니다. 보드 규칙, 증강 효과, 네트워크 동기화, UI와 이펙트를 Godot 프로젝트 구조로 분리해 구성했습니다. [근거: README.md, project.godot]",
+        "architecture": "Godot Scene과 GDScript를 중심으로 구성한 2D 게임 아키텍처입니다. main.tscn을 진입점으로 두고, 핵심 게임 상태·게임 매니저·보드·물리 말·네트워크 매니저·UI·증강 효과를 각각의 디렉터리로 분리했습니다. 증강은 정의와 관리 로직, 개별 효과 로직, 시각 효과 Scene으로 나뉘며, GD-Sync는 autoload와 플러그인으로 연결됩니다. [근거: project.godot, README.md]",
+        "implementation": [
+          "게임의 시작 Scene을 main.tscn으로 지정하고 1280×720 뷰포트와 canvas_items 스트레치 설정을 적용 [근거: project.godot]",
+          "증강 정의·관리와 개별 효과를 분리하고, 증강 효과별 GDScript와 효과 Scene을 연결하는 구조로 구성 [근거: README.md, scenes/effects/blind.tscn, scenes/effects/blizzard.tscn, scenes/effects/fireball.tscn, scenes/effects/gravity_field.tscn]",
+          "Blind 효과에서 보드 크기와 시야 반경을 기준으로 여러 중심점 주변만 투명하게 표시하는 CanvasItem 셰이더를 사용 [근거: scenes/effects/blind.tscn]",
+          "Blizzard와 Fireball 효과에 GPUParticles2D, Gradient, ParticleProcessMaterial을 사용해 눈보라와 투사체 궤적을 표현 [근거: scenes/effects/blizzard.tscn, scenes/effects/fireball.tscn]",
+          "Fireball 효과에 발광 스프라이트, 코어 스프라이트, 파티클 트레일, PointLight2D, pulse Animation을 결합 [근거: scenes/effects/fireball.tscn]",
+          "Snowball 효과에 조준선, 궤적, 목표 링, 투사체 파티클, 충돌 시 ImpactParticles를 별도 구성 [근거: scenes/effects/snowball.tscn]",
+          "GD-Sync를 autoload로 등록하고 온라인 로비와 네트워크 동기화 기능을 프로젝트에 포함 [근거: project.godot, README.md]",
+          "headless 모드에서 보드 기하, 증강, 네트워크 연결 종료, 스냅샷 제한, RNG 격리 등을 확인할 수 있는 자동 테스트 실행 명령을 README에 정리 [근거: README.md]"
+        ],
+        "troubleshooting": []
+      },
+      "github": "https://github.com/peeta0126/AugmentAlkkagi",
+      "period": "기간 확인 필요",
+      "featured": true,
+      "subtitle": "증강 시스템과 온라인 대전을 결합한 물리 기반 알까기 게임",
+      "description": "Godot 4.7.2로 제작한 흑돌·백돌 물리 알까기 게임입니다. 로컬 2인 대전과 GD-Sync 기반 1:1 온라인 대전, 다양한 증강 및 효과 연출을 제공합니다. [근거: README.md, project.godot]"
+    },
+    "token_usage": {
+      "input_tokens": 22307,
+      "output_tokens": 2113
+    },
+    "estimated_cost": "0.0034985",
+    "status": "rejected",
+    "created_at": "2026-11-07T00:01:21.493Z"
+  },
+  "imageCandidates": [
+    {
+      "url": "https://raw.githubusercontent.com/peeta0126/AugmentAlkkagi/0b2f7cba2c8b3d9ff1418e2f8325ffef2a09963f/assets/ui/lobby_logo.png",
+      "kind": "repository_logo_not_screenshot",
+      "status": "admin_review_required"
+    }
+  ],
+  "screenshots": "admin_upload_pending"
+}

@@ -26,8 +26,15 @@ export const projectSchema = z.object({
     metrics: z.array(z.object({ label: text, before: text, after: text, change: text, evidence: text })).optional(),
     gallery: z.array(z.object({ src: imageUrl, alt: text, caption: text })).optional(),
     performance: text.optional(), result: text.optional(), retrospective: text.optional(),
+    limitations:list.optional(),
   }).strict().optional(),
 }).strict();
+export const portfolioFieldsSchema=z.object({
+  background:text,goal:text,roleSummary:text,responsibilities:list,
+  architectureLayers:z.array(z.object({name:z.string().max(100),items:z.array(z.string().max(180)).max(8)}).strict()).max(6),
+  userFlow:list,result:text,limitations:list,retrospectiveDraft:text,
+}).strict();
+export const fieldEvidenceSchema=z.array(z.object({field:z.string().max(180),factIds:z.array(z.string().max(80)).min(1).max(12)}).strict()).max(180);
 export const generatedSchema = z.object({
   title: z.string().min(1).max(200), subtitle: z.string().max(300), description: z.string().max(600),
   projectType: z.string().max(100), tech: z.array(z.string().max(80)).max(20),
@@ -37,6 +44,8 @@ export const generatedSchema = z.object({
   troubleshooting: z.array(troubleSchema.extend({ evidence: z.array(z.string()).min(1).max(8) })).max(5),
   evidence: z.array(z.object({ claim: z.string().max(600), sources: z.array(z.string()).min(1).max(8) })).min(1).max(40),
   reviewNotes: z.array(z.string().max(600)).max(15),
+  portfolio:portfolioFieldsSchema.optional(),
+  fieldEvidence:fieldEvidenceSchema.optional(),
 }).strict();
 export type Generated = z.infer<typeof generatedSchema>;
 export const settingsSchema = z.object({

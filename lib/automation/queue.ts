@@ -17,7 +17,7 @@ export async function resetQueue() {
     await tx`lock table portfolio_jobs in exclusive mode`;
     const before = [...await tx<QueueCount[]>`select kind,status,count(*)::int as count from portfolio_jobs group by kind,status order by kind,status`];
     if (before.some(row => row.status === "running")) throw new QueueRunningError();
-    const deleted = await tx`delete from portfolio_jobs where kind in ('discover','analyze') and status in ('queued','done','failed') returning id`;
+    const deleted = await tx`delete from portfolio_jobs where kind in ('discover','analyze','rewrite') and status in ('queued','done','failed') returning id`;
     const after = [...await tx<QueueCount[]>`select kind,status,count(*)::int as count from portfolio_jobs group by kind,status order by kind,status`];
     const result = { before, after, deleted:deleted.length };
     // Preserve existing logs; append only this reset's counts in the same transaction.

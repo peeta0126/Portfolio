@@ -306,6 +306,7 @@ export default async function ProjectPage({
             ) : null}
 
             <TextSection title="결과">{detail.result}</TextSection>
+            <ListSection title="남은 과제" items={detail.limitations} />
             <TextSection title="회고">{detail.retrospective}</TextSection>
           </div>
         </Container>
