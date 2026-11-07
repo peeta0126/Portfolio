@@ -12,6 +12,7 @@ export function ProjectCard({ project }: { project: Project }) {
       {project.thumbnail && (
         <div className="pointer-events-none absolute inset-y-0 right-0 w-2/5 opacity-[0.14] transition-opacity group-hover:opacity-20 dark:opacity-10 dark:group-hover:opacity-[0.16]">
           <Image
+            unoptimized={project.thumbnail.startsWith("https:") || project.thumbnail.startsWith("/api/")}
             src={project.thumbnail}
             alt=""
             fill

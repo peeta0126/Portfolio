@@ -1,7 +1,8 @@
 import { Container } from "@/components/container";
-import { problemSolving } from "@/data/problem-solving";
+import { getProblems } from "@/lib/portfolio";
 
-export function ProblemSolving() {
+export async function ProblemSolving() {
+  const problemSolving = await getProblems();
   return (
     <section
       id="problem-solving"

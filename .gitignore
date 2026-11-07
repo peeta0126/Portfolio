@@ -3,6 +3,7 @@ node_modules/
 
 # Next.js
 .next/
+.next-verify/
 out/
 
 # Build
@@ -28,3 +29,9 @@ pnpm-debug.log*
 # OS
 .DS_Store
 Thumbs.db
+
+# Local verification artifacts (never production data)
+.test-postgres/
+test-results/
+playwright-report/
+artifacts/

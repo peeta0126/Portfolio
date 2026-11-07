@@ -51,7 +51,7 @@ export type Project = {
   title: string;
   subtitle: string;
   period: string;
-  kind: "Team Project" | "Personal Project";
+  kind: "Team Project" | "Personal Project" | "Project";
   tech: string[];
   cardTech?: string[];
   github?: string;

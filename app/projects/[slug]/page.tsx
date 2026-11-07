@@ -3,12 +3,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowDown, ArrowLeft, ArrowUpRight, ExternalLink, Github } from "lucide-react";
-import { projects } from "@/data/projects";
+import { getProjects } from "@/lib/portfolio";
 import { Container } from "@/components/container";
 
-export function generateStaticParams() {
-  return projects.map(({ slug }) => ({ slug }));
-}
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,
@@ -16,6 +14,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
+  const projects = await getProjects();
   const project = projects.find((item) => item.slug === slug);
 
   return {
@@ -67,6 +66,7 @@ export default async function ProjectPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
+  const projects = await getProjects();
   const project = projects.find((item) => item.slug === slug);
 
   if (!project) notFound();
@@ -162,6 +162,7 @@ export default async function ProjectPage({
                     >
                       <div className="relative aspect-video overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-900 dark:border-zinc-800">
                         <Image
+                          unoptimized={image.src.startsWith("https:") || image.src.startsWith("/api/")}
                           src={image.src}
                           alt={image.alt}
                           fill

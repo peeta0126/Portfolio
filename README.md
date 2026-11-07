@@ -1,5 +1,7 @@
 # Developer Portfolio
 
+GitHub 자동 동기화·코드 기반 AI 분석·관리자 검토 기능의 구조, 환경변수, DB 이관, Vercel 설정과 테스트 방법은 [운영 가이드](docs/automation.md)를 참고하세요. 기존 공개 UI와 `data/`의 원본 프로젝트 데이터는 보존합니다.
+
 Next.js App Router 기반의 데이터 중심 개발자 포트폴리오입니다.
 
 - 포트폴리오 소유자: 이민석

@@ -1,8 +1,9 @@
 import { Container } from "@/components/container";
 import { ProjectCard } from "@/components/project-card";
-import { projects } from "@/data/projects";
+import { getProjects } from "@/lib/portfolio";
 
-export function Projects() {
+export async function Projects() {
+  const projects = await getProjects();
   const featured = projects.filter((project) => project.featured);
 
   return (
