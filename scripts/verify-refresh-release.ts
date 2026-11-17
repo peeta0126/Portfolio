@@ -81,7 +81,9 @@ async function main() {
     }
     await page.goto(`${origin}/problem-solving`,{waitUntil:"networkidle"});
     if(await page.locator("main article").count()!==10)throw new Error("ALL_PROBLEM_COUNT_FAILED");
-    for(const title of ["발사력 UI 초기화","동결 상태에서 턴 진행"])if(!(await page.locator("main").innerText()).includes(title))throw new Error("REGRESSION_CASE_MISSING");
+    const preservedGameCases=state.projects.find((p:{slug:string})=>p.slug==="github-1431052115").content.detail.troubleshooting;
+    const allCaseText=await page.locator("main").innerText();
+    for(const item of preservedGameCases)if(!allCaseText.includes(item.title))throw new Error("REGRESSION_CASE_MISSING");
     const pdf=await page.request.get(`${origin}/resume.pdf`,{headers:{"Cache-Control":"no-cache"}});
     const localPdf=await readFile("public/resume.pdf");
     if(pdf.status()!==200 || !(await pdf.body()).equals(localPdf))throw new Error("RESUME_MISMATCH");
