@@ -1,4 +1,6 @@
 import { test, expect } from "@playwright/test";
+import { readFile } from "node:fs/promises";
+import { contact } from "../../data/contact";
 
 test("프로젝트 우선 구성·대표 순서·반응형·이미지·이력서와 키보드 탐색",async({page,request})=>{
   const errors:string[]=[];
@@ -22,6 +24,8 @@ test("프로젝트 우선 구성·대표 순서·반응형·이미지·이력서
   const resume=await request.get("/resume.pdf");
   expect(resume.status()).toBe(200);
   expect((await resume.body()).subarray(0,4).toString()).toBe("%PDF");
+  expect(await resume.body()).toEqual(await readFile("public/resume.pdf"));
+  await expect(page.locator("#contact").getByRole("link",{name:/Email/})).toHaveAttribute("href",`mailto:${contact.email}`);
   await page.goto("/");await page.keyboard.press("Tab");
   await expect(page.getByText("본문으로 건너뛰기",{exact:true})).toBeFocused();
   const style=await page.locator(":focus").evaluate(el=>getComputedStyle(el).outlineStyle);

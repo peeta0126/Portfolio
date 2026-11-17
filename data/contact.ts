@@ -1,5 +1,5 @@
 export const contact = {
-  email: "",
+  email: "lmspeeta@naver.com",
   github: "https://github.com/peeta0126",
   blog: "https://blog.naver.com/lmspeeta",
 };
