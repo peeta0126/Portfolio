@@ -1,3 +1,5 @@
+export type EvidenceLink = { label: string; url: string };
+
 export type ProjectMetric = {
   label: string;
   before: string;
@@ -38,6 +40,7 @@ export type ProjectDetail = {
     problem: string;
     solution: string;
     result?: string;
+    evidence?: EvidenceLink[];
   }[];
   metrics?: ProjectMetric[];
   gallery?: ProjectImage[];
@@ -65,6 +68,8 @@ export type Project = {
 
 export type ProblemSolving = {
   project: string;
+  slug?: string;
+  evidence?: EvidenceLink[];
   title: string;
   problem: string;
   solution: string;

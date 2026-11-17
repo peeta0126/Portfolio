@@ -4,11 +4,11 @@ import { projects } from "../../data/projects";
 
 const origin="http://127.0.0.1:3107";
 test.describe.configure({mode:"serial"});
-test("데스크톱·모바일 공개 페이지와 기존 3개 프로젝트를 유지한다",async({page})=>{
+test("데스크톱·모바일 공개 페이지와 기존 프로젝트와 새 정적 원고를 유지한다",async({page})=>{
   const errors:string[]=[];page.on("pageerror",error=>errors.push(error.message));
   for(const width of [1440,375]) {
     await page.setViewportSize({width,height:900});await page.goto("/");
-    await expect(page.locator("#projects a[href^='/projects/']")).toHaveCount(3);
+    await expect(page.locator("#projects article")).toHaveCount(projects.length);
     for(const p of projects)await expect(page.locator("#projects")).toContainText(p.title);
     await expect(page.locator("#problem-solving article")).toHaveCount(4);
     await expect(page.locator("body")).not.toContainText("검토 대기 프로젝트");
@@ -19,7 +19,7 @@ test("데스크톱·모바일 공개 페이지와 기존 3개 프로젝트를 �
   await page.screenshot({path:"artifacts/public-dark-mobile.png",fullPage:true});
   for(const p of projects) {
     await page.goto(`/projects/${p.slug}`);await expect(page.locator("h1")).toHaveText(p.title);
-    await expect(page.locator("main")).toContainText(p.detail!.overview!);
+    await expect(page.locator("main")).toContainText(p.detail?.overview ?? p.description);
   }
   await page.goto("/projects/github-999");await expect(page.getByRole("heading",{name:"Page not found."})).toBeVisible();
   expect(errors).toEqual([]);
@@ -42,15 +42,18 @@ test("관리자 로그인·수정·승인 시 수동 필드 보호·공개 전�
   await page.setViewportSize({width:375,height:812});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
   await page.screenshot({path:"artifacts/admin-editor-mobile.png",fullPage:true});await page.setViewportSize({width:1440,height:1000});
   const content=JSON.parse(await editor.inputValue());content.description="관리자가 직접 작성하고 보호한 설명";
+  await page.getByLabel("표시 순서",{exact:true}).fill("40");
   await editor.fill(JSON.stringify(content,null,2));await page.getByRole("button",{name:"변경 저장"}).click();
   await expect(page.getByRole("status")).toContainText("저장되었습니다");
+  const ordered=await (await page.request.get("/api/admin")).json();
+  expect(ordered.projects.find((p:{content:{slug:string}})=>p.content.slug==="github-999").display_order).toBe(40);
   await page.getByRole("button",{name:/AI 검토/}).click();await expect(page.getByText("승인 후 내용",{exact:true})).toBeVisible();
   await page.screenshot({path:"artifacts/admin-review-desktop.png",fullPage:true});
   await page.getByRole("button",{name:"승인 후 게시",exact:true}).click();await expect(page.getByRole("status")).toContainText("저장되었습니다");
   await page.goto("/projects/github-999");await expect(page.locator("h1")).toHaveText("Mock 새 프로젝트");await expect(page.locator("main")).toContainText("관리자가 직접 작성하고 보호한 설명");
   await page.goto("/admin");await page.getByRole("button",{name:/Mock 새 프로젝트/}).click();await page.getByLabel("공개 상태").selectOption("private");
   await page.getByRole("button",{name:"변경 저장"}).click();await expect(page.getByRole("status")).toContainText("저장되었습니다");
-  await page.goto("/");await expect(page.locator("#projects a[href^='/projects/']")).toHaveCount(3);
+  await page.goto("/");await expect(page.locator("#projects article")).toHaveCount(projects.length);
   await page.goto("/projects/github-999");expect(await page.locator("h1").textContent()).not.toContain("Mock 새 프로젝트");
 });
 test("관리자 API가 CSRF·수정 충돌·위험 URL을 검증하고 업로드를 보호한다",async({request})=>{
@@ -124,7 +127,7 @@ test("상세 초안의 반응형 미리보기·항목별 수정·승인·사실 
   await expect(page.locator("h1")).toHaveText("증강 알까기");
   await expect(page.getByText("관리자가 실제 내용을 확인한 개발 결과",{exact:true})).toBeVisible();
   await expect(page.locator("main")).not.toContainText("[근거:");
-  await page.goto("/admin");await page.getByRole("button",{name:/증강 알까기/}).click();
+  await page.goto("/admin");await page.getByRole("button",{name:/증강 알까기/}).filter({hasText:"mock-project"}).click();
   await page.getByRole("button",{name:"설명만 다시 생성",exact:true}).click();
   await expect(page.getByRole("status")).toContainText("저장되었습니다");
   const reserved=await (await page.request.get("/api/admin")).json();

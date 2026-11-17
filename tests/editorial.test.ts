@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { z } from "zod";
 import { technicalSchema, writingSchema, validateTechnical, validateWriting, separateLegacyEvidence, type SourcePacket } from "../lib/automation/editorial";
 import { mergeProposal, selectFiles } from "../lib/automation/core";
-import { projects } from "../data/projects";
+import { projects } from "../data/project-archive";
 import { mockWriting } from "./fixtures/editorial";
 
 const source:SourcePacket={sha:"a".repeat(40),files:[{path:"src/main.ts",sha:"file",content:"export const routing = true;"},{path:"tests/main.test.ts",sha:"test",content:"assert.equal(routing, true);"}],commits:[{id:"b".repeat(40),message:"fix: retain local targeting during host snapshots"}],prs:[],tree:["src/main.ts","tests/main.test.ts","unread.ts"]};

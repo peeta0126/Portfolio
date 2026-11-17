@@ -22,7 +22,7 @@ export const projectSchema = z.object({
     contributionNote: text.optional(), architecture: text.optional(), erd: text.optional(), api: text.optional(),
     architectureLayers: z.array(z.object({ name: text, items: list })).optional(),
     features: list.optional(), responsibilities: list.optional(), collaboration: list.optional(), process: text.optional(),
-    userFlow: list.optional(), implementation: list.optional(), troubleshooting: z.array(troubleSchema.extend({ result: text.optional() })).max(15).optional(),
+    userFlow: list.optional(), implementation: list.optional(), troubleshooting: z.array(troubleSchema.extend({ result: text.optional(), evidence: z.array(z.object({label: text, url: safeUrl})).max(10).optional() })).max(15).optional(),
     metrics: z.array(z.object({ label: text, before: text, after: text, change: text, evidence: text })).optional(),
     gallery: z.array(z.object({ src: imageUrl, alt: text, caption: text })).optional(),
     performance: text.optional(), result: text.optional(), retrospective: text.optional(),

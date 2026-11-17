@@ -1,5 +1,5 @@
 import { writeFile, mkdir } from "node:fs/promises";
-import { projects } from "../data/projects";
+import { projects } from "../data/project-archive";
 import { problemSolving } from "../data/problem-solving";
 import postgres from "postgres";
 import { loadEnvConfig } from "@next/env";

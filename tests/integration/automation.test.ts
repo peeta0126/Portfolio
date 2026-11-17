@@ -5,7 +5,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { PGlite } from "@electric-sql/pglite";
 import { PGLiteSocketServer } from "@electric-sql/pglite-socket";
-import { projects } from "../../data/projects";
+import { projects } from "../../data/project-archive";
 import { problemSolving } from "../../data/problem-solving";
 import { defaults } from "../../lib/automation/schema";
 import { db, enqueue } from "../../lib/automation/db";

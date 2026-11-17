@@ -1,3 +1,4 @@
+import { ProjectDetailContent } from "@/components/project-detail";
 import type { Project } from "@/types";
 
 export function ProjectPreview({project}:{project:Project}) {
@@ -8,5 +9,6 @@ export function ProjectPreview({project}:{project:Project}) {
     {[["핵심 기능",detail.features],["핵심 구현",detail.implementation],["남은 과제",detail.limitations]].map(([title,items])=>Array.isArray(items)&&items.length?<section key={String(title)}><h4 className="font-semibold">{title}</h4><ul className="mt-2 list-disc space-y-2 pl-5">{items.map(text=><li key={text}>{text}</li>)}</ul></section>:null)}
     {detail.architectureLayers?.length?<ol aria-label="기술 구조 흐름" className="grid gap-3 sm:grid-cols-2">{detail.architectureLayers.map(layer=><li className="rounded-xl border border-zinc-200 p-4 dark:border-zinc-800" key={layer.name}><strong>{layer.name}</strong><p>{layer.items.join(" · ")}</p></li>)}</ol>:null}
     {detail.troubleshooting?.map(item=><section className="rounded-xl border border-zinc-200 p-4 dark:border-zinc-800" key={item.title}><h4 className="font-semibold">{item.title}</h4><dl className="mt-3 space-y-3">{[["Problem",item.problem],["Approach",item.solution],["Result",item.result]].map(([label,text])=><div key={label}><dt className="font-medium">{label}</dt><dd>{text}</dd></div>)}</dl></section>)}
+    <details><summary className="cursor-pointer font-medium">실제 상세 페이지 구성 미리보기</summary><div className="mt-6"><ProjectDetailContent project={project}/></div></details>
   </div>;
 }

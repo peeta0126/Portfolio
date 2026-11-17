@@ -1,26 +1,7 @@
 export const skillGroups = [
-  {
-    name: "Frontend",
-    skills: ["HTML", "CSS", "JavaScript", "TypeScript", "React", "Next.js", "Tailwind CSS", "Vite"],
-  },
-  {
-    name: "Interactive / Game",
-    skills: ["Phaser", "Zustand"],
-  },
-  {
-    name: "Backend / API",
-    skills: ["Python", "FastAPI", "Node.js", "Express", "REST API"],
-  },
-  {
-    name: "Database",
-    skills: ["PostgreSQL", "MySQL", "SQLite", "Prisma", "SQL"],
-  },
-  {
-    name: "AI",
-    skills: ["OpenAI API", "Responses API", "Structured Outputs", "Zod", "Codex CLI"],
-  },
-  {
-    name: "Tools & Deployment",
-    skills: ["Git", "GitHub", "Vercel", "Playwright", "GitHub Actions"],
-  },
+  {name:"Frontend",skills:["HTML","CSS","JavaScript","TypeScript","React","Next.js","Tailwind CSS"]},
+  {name:"Backend / Database",skills:["Node.js","Express","PostgreSQL","Supabase","Prisma","SQLite"]},
+  {name:"Interactive / Game",skills:["Godot","GDScript","GD-Sync","Phaser"]},
+  {name:"AI / Automation",skills:["OpenAI API","Structured Outputs","Python","Codex"]},
+  {name:"Tools",skills:["Git","GitHub","Vercel","Playwright","TypeScript 검사","ESLint"]},
 ] as const;

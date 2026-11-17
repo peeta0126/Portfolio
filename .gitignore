@@ -35,3 +35,6 @@ Thumbs.db
 test-results/
 playwright-report/
 artifacts/
+
+# Original content and local DB backups
+backups/

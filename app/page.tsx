@@ -10,12 +10,12 @@ export const dynamic = "force-dynamic";
 
 export default function Home() {
   return (
-    <main>
+    <main id="main-content">
       <Hero />
       <About />
-      <Skills />
       <Projects />
       <ProblemSolving />
+      <Skills />
       <AiExperience />
       <Contact />
     </main>

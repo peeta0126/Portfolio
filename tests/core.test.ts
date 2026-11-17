@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { projects } from "../data/projects";
+import { projects } from "../data/project-archive";
 import { problemSolving } from "../data/problem-solving";
 import { defaults, generatedSchema, imageUrl, projectSchema, safeUrl } from "../lib/automation/schema";
 import { editedFields, eligible, isSource, meaningfulHash, mergeProposal, redact, selectFiles } from "../lib/automation/core";
@@ -42,7 +42,7 @@ test("Problem Solving만 근거가 부족하면 제외하고 기본 설명과 �
   assert.ok(result.generated.reviewNotes.length);
 });
 test("기존 데이터와 백업을 바이트 단위로 보존한다",async()=>{
-  for(const file of ["projects.ts","problem-solving.ts"])assert.deepEqual(await readFile(`data/${file}`),await readFile(`backups/original/${file}`));
+  for(const file of ["projects.ts","problem-solving.ts"])assert.deepEqual(await readFile(file === "projects.ts" ? "data/project-archive.ts" : `data/${file}`),await readFile(`backups/original/${file}`));
   assert.equal(projects.length,3);assert.equal(problemSolving.length,4);
   assert.equal(projectSchema.array().parse(projects).length,3);
 });

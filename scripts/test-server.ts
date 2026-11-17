@@ -6,6 +6,8 @@ import { readFile } from "node:fs/promises";
 import postgres from "postgres";
 import { hashPassword } from "../lib/automation/session";
 import { projects } from "../data/projects";
+import { problemSolving } from "../data/problem-solving";
+import { projects as archived } from "../data/project-archive";
 import { mergeProposal } from "../lib/automation/content";
 
 async function main() {
@@ -18,6 +20,10 @@ async function main() {
   await sql.unsafe(await readFile("db/002_editorial.sql","utf8"));
   for (const [index,p] of projects.entries()) {
     await sql`insert into projects(slug,content,visibility,display_order,analysis_status) values(${p.slug},${sql.json(p)},'public',${index},'manually_edited')`;
+  }
+  for (const [index,content] of problemSolving.entries()) {
+    const project=archived.find(p=>p.title===content.project)!;
+    await sql`insert into portfolio_home_problem_solving(legacy_key,project_slug,content,display_order) values(${`legacy:${index}`},${project.slug},${sql.json(content)},${index})`;
   }
   const pending={...projects[1],slug:"github-999",title:"검토 대기 프로젝트",description:"아직 공개하지 않은 설명",github:"https://github.com/peeta0126/mock-project"};
   const [row]=await sql`insert into projects(slug,github_repo_id,repo_name,content,visibility) values(${pending.slug},999,'mock-project',${sql.json(pending)},'private') returning id`;

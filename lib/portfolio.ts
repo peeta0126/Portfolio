@@ -1,5 +1,7 @@
 import "server-only";
+import { collectProblems } from "./presentation";
 import { cache } from "react";
+import { projects as archived } from "../data/project-archive";
 import { projects as legacy } from "../data/projects";
 import { problemSolving as legacyProblems } from "../data/problem-solving";
 import { db } from "./automation/db";
@@ -22,17 +24,16 @@ export const getProjects = cache(async (): Promise<Project[]> => {
   }
 });
 export async function getProblems(): Promise<ProblemSolving[]> {
-  if (!process.env.DATABASE_URL) return legacyProblems;
   const projects = await getProjects();
-  let home:{project_slug:string;content:ProblemSolving}[]=[];
-  try { home=await db()`select project_slug,content from portfolio_home_problem_solving order by display_order`; }
-  catch { /* Compatibility during the additive migration; visible project filtering still applies below. */ }
-  return projects.flatMap(p=>{
-    const original=legacy.find(l=>l.slug===p.slug);
-    if (original && JSON.stringify(original.detail?.troubleshooting)===JSON.stringify(p.detail?.troubleshooting)) {
-      const saved=home.filter(item=>item.project_slug===p.slug).map(item=>item.content);
-      return (saved.length ? saved : legacyProblems.filter(item=>item.project===original.title)).map(item=>({...item,project:p.title}));
-    }
-    return (p.detail?.troubleshooting ?? []).map(t=>({project:p.title,...t,result:t.result ?? ""}));
-  });
+  let saved: {project_slug:string;content:ProblemSolving}[]=[];
+  if (!process.env.DATABASE_URL) {
+    saved = legacyProblems.flatMap(content => {
+      const original=archived.find(p=>p.title===content.project);
+      return original ? [{project_slug:original.slug,content}] : [];
+    });
+  } else {
+    try { saved=await db()`select project_slug,content from portfolio_home_problem_solving order by display_order`; }
+    catch { /* Missing home table must not expose anything outside the public snapshot. */ }
+  }
+  return collectProblems(projects,saved,archived);
 }

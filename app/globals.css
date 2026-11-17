@@ -2,7 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; scroll-padding-top: 6rem; }
+[id] { scroll-margin-top: 6rem; }
+:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
+p, li, dd, h1, h2, h3, h4 { overflow-wrap: anywhere; }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
 body {
   @apply bg-white text-zinc-950 antialiased dark:bg-zinc-950 dark:text-zinc-50;
   font-family: "Pretendard Variable", Pretendard, "SUIT Variable", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
@@ -12,8 +19,18 @@ body {
 .section-label { @apply text-sm font-medium text-zinc-500; }
 .about-copy {
   max-width: 46rem;
-  font-size: clamp(1.25rem, 1.8vw, 1.7rem);
-  font-weight: 450;
-  line-height: 1.62;
-  letter-spacing: -0.038em;
+  font-size: .9375rem;
+  line-height: 1.8;
+  letter-spacing: -0.02em;
 }
+
+.detail-heading { @apply text-xl font-semibold tracking-tight sm:text-2xl; }
+.project-card-compact h4 { @apply text-xl; }
+.project-card-compact > div { @apply p-5; }
+.architecture-flow > li:not(:last-child)::after { content: "↓"; position: absolute; left: 50%; bottom: -1.5rem; color: #71717a; }
+@media (min-width: 640px) {
+  .architecture-flow > li:not(:last-child)::after { content: "→"; left: auto; right: -1.4rem; bottom: 50%; }
+}
+
+/* Keep muted metadata readable against the charcoal surface. */
+.dark .text-zinc-500 { color: #a1a1aa; }
