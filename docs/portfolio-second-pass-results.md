@@ -1,5 +1,7 @@
 # Portfolio 2차 UI/UX 개선 결과
 
+이 문서는 해당 개편 시점의 작업·검증 기록입니다. 미배포·이메일 미설정 등 당시 상태를 현재 상태로 해석하지 않습니다. 현재 실행·데이터 경계는 [README](../README.md)를 참고하세요.
+
 2026-11-18. 기존 1차 개편 작업 트리 위에 적용했습니다. `ui-ux-pro-max`의 문장 길이·행간·반응형 이미지·클릭 영역·대비 기준을 사용하고 React 구성도 점검했습니다. 운영 DB 게시, 마이그레이션, 배포, commit/push, 유료 AI 호출은 실행하지 않았습니다.
 
 이번 대화에서 첨부 스크린샷 10장은 전달되지 않아 직접 검토할 수 없었습니다. 저장소의 기존 캡처와 새 로컬 브라우저 캡처를 검토했습니다.
@@ -53,12 +55,12 @@
 
 ## 4. 실제 화면 캡처
 
-- 변경 전 참고: [기존 Hero](../artifacts/refresh/preview-hero-1440.png), [기존 프로젝트 영역](../artifacts/refresh/preview-projects-1440.png)
-- 변경 후 전체: [데스크톱 라이트](../artifacts/second-pass/home-1440-light.png), [모바일 라이트](../artifacts/second-pass/home-375-light.png), [태블릿 라이트](../artifacts/second-pass/home-768-light.png)
-- 다크 전체: [데스크톱](../artifacts/second-pass/home-1440-dark.png), [모바일](../artifacts/second-pass/home-375-dark.png), [태블릿](../artifacts/second-pass/home-768-dark.png)
-- 부분 확대: [Hero 데스크톱](../artifacts/second-pass/hero-desktop.png), [Hero 모바일](../artifacts/second-pass/hero-mobile.png), [프로젝트](../artifacts/second-pass/section-projects.png), [문제 해결](../artifacts/second-pass/section-problem-solving.png), [스택](../artifacts/second-pass/section-skills.png)
+- 변경 전 참고: 기존 Hero (`artifacts/refresh/preview-hero-1440.png`, 로컬 전용), 기존 프로젝트 영역 (`artifacts/refresh/preview-projects-1440.png`, 로컬 전용)
+- 변경 후 전체: 데스크톱 라이트 (`artifacts/second-pass/home-1440-light.png`, 로컬 전용), 모바일 라이트 (`artifacts/second-pass/home-375-light.png`, 로컬 전용), 태블릿 라이트 (`artifacts/second-pass/home-768-light.png`, 로컬 전용)
+- 다크 전체: 데스크톱 (`artifacts/second-pass/home-1440-dark.png`, 로컬 전용), 모바일 (`artifacts/second-pass/home-375-dark.png`, 로컬 전용), 태블릿 (`artifacts/second-pass/home-768-dark.png`, 로컬 전용)
+- 부분 확대: Hero 데스크톱 (`artifacts/second-pass/hero-desktop.png`, 로컬 전용), Hero 모바일 (`artifacts/second-pass/hero-mobile.png`, 로컬 전용), 프로젝트 (`artifacts/second-pass/section-projects.png`, 로컬 전용), 문제 해결 (`artifacts/second-pass/section-problem-solving.png`, 로컬 전용), 스택 (`artifacts/second-pass/section-skills.png`, 로컬 전용)
 - 대표 상세 3개 × 375·1440px × 라이트·다크 총 12장: `artifacts/second-pass/detail-{slug}-{width}-{theme}.png`
-- [전체 문제 해결 기록 모바일 다크](../artifacts/second-pass/all-problems-mobile-dark.png)
+- 전체 문제 해결 기록 모바일 다크 (`artifacts/second-pass/all-problems-mobile-dark.png`, 로컬 전용)
 
 `00-visual.spec.ts`에서 관리자 변경 테스트보다 먼저 깨끗한 격리 데이터로 캡처했습니다. 메인 이미지 6개·대표 상세 이미지의 실제 로딩 완료를 확인한 후 전체 페이지를 저장합니다. 게임·기술 스택·Hero·프로젝트·문제 해결 캡처는 직접 열어 검토했습니다.
 

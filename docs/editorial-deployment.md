@@ -6,7 +6,7 @@
 - 증강 알까기: https://portfolio-iota-sage-3jin175bbg.vercel.app/projects/github-1431052115
 - Vercel 프로젝트: portfolio / prj_r7sCHCSHUjSUqjSzoOwwfPuWs0Vl
 - 운영 배포: dpl_H9VkMCyLp2XYDBiDzmSGhLnATXT2 (READY)
-- Git commit/push 없이 검증한 로컬 소스 68개를 직접 배포했다. 현재 Git HEAD는 b411aaab6d0bfee5adab1c0e34de51732d5dcb69이며 작업 트리 변경은 아직 미커밋 상태다.
+- Git commit/push 없이 검증한 로컬 소스 68개를 직접 배포했다. 당시 Git HEAD는 b411aaab6d0bfee5adab1c0e34de51732d5dcb69이며 작업 트리 변경은 아직 미커밋 상태다.
 
 ## 반영 내용
 
